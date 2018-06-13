@@ -380,7 +380,6 @@ fc_all_b3 <- cbind(fc_0_b3, fc_05_b3, fc_1_b3, fc_2_b3, fc_4_b3, fc_8_b3, fc_16_
 
 
 ##### visualisation ####
-library(gplots)
 library(pheatmap)
 
 fc_all_a1_NAr <- fc_all_a1[apply(fc_all_a1, 1, function(x) sum(is.na(x))) < 5,]
