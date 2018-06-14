@@ -199,6 +199,14 @@ x <- x[, sort(colnames(x))]
 ## save x in x_old
 x_old <- x 
 
+## only use replicates 1-3
+x <- x[, -grep(colnames(x), pattern = glob2rx("Intensity.?_*_4"))]
+x <- x[, -grep(colnames(x), pattern = glob2rx("Intensity.?_*_5"))]
+x <- x[, -grep(colnames(x), pattern = glob2rx("Intensity.0_4"))]
+x <- x[, -grep(colnames(x), pattern = glob2rx("Intensity.0_5"))]
+
+x_old <- x 
+
 
 ## define functions that are used later
 ## calculate_fc is used in the strategies A
@@ -277,7 +285,7 @@ ind_batch5 <- grep(colnames(x), pattern = "0_5|05_5|1_5|2_5|4_5|8_5|16_5|32_5|64
 # ind_remove <- unique(ind_remove)
 # x <- x[-ind_remove, ]
 
-ind_batch_l <- list(ind_batch1, ind_batch2, ind_batch3, ind_batch4, ind_batch5)
+ind_batch_l <- list(ind_batch1, ind_batch2, ind_batch3) ##, ind_batch4, ind_batch5)
 
 ## Day Normalization
 x_DNtemp <- x
