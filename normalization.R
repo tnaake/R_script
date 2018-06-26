@@ -403,6 +403,33 @@ pheatmap(fc_all_b2_NAr, cluster_cols = FALSE, cluster_rows = TRUE, scale = "row"
 pheatmap(fc_all_a3_NAr, cluster_cols = FALSE, cluster_rows = TRUE, scale = "row")
 pheatmap(fc_all_b3_NAr, cluster_cols = FALSE, cluster_rows = TRUE, scale = "row")
 
+## 2 factor anova
+treatment <- c(rep("C", 3), rep(rep("C", 3), 8), rep(rep("R", 3), 8))
+treatment <- factor(treatment)
+time <- c(rep(0, 3), rep(c(rep(0.5, 3), rep(1, 3), rep(2, 3), rep(4, 3), rep(8, 3), rep(16, 3), rep(32, 3), rep(64, 3)), 2))
+
+aov_l <- lapply(seq_len(nrow(x_DMN)), function(x) {
+    df <- data.frame(value = as.numeric(x_DMN[x,]), treatment = treatment, time = time)
+    ## balanced design anova for treatment and time and interaction
+    aov_res <- try(aov(value ~ treatment + time + treatment:time, data = df))
+    return(aov_res)
+})
+
+## get p-values for treatment, time and interaction
+p_treatment <- lapply(seq_len(length(aov_l)), function(x) try(summary(aov_l[[x]])[[1]]["Pr(>F)"][1, ]))
+p_time <- lapply(seq_len(length(aov_l)), function(x) try(summary(aov_l[[x]])[[1]]["Pr(>F)"][2, ]))
+p_treatment_time <- lapply(seq_len(length(aov_l)), function(x) try(summary(aov_l[[x]])[[1]]["Pr(>F)"][3, ]))
+
+
+p_treatment <- as.numeric(unlist(p_treatment))
+p_time <- as.numeric(unlist(p_time))
+p_treatment_time <- as.numeric(unlist(p_treatment_time))
+
+## adjust p-values
+p_treatment_adj <- p.adjust(p_treatment, method = "fdr")
+p_time_adj <- p.adjust(p_time, method = "fdr")
+p_treatment_time_adj <- p.adjust(p_treatment_time, method = "fdr")
+
 # 
 # rpcaNN <- pca(t(x), method="ppca", center=TRUE, scale='none', nPcs=5, seed=3455, na.rm = TRUE)
 # rpcaDN <- pca(t(x_DN), method="ppca", center=TRUE, scale='none', nPcs=5, seed=3455)
