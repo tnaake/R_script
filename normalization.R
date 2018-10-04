@@ -6,6 +6,7 @@ x <- read.table("valid_filt_PhosphoProteomics_0_64_copy.txt", header=TRUE, fill=
 rownames(x) <- paste(x[,"Protein"], x[,"Position"], x[,"Amino.acid"], rownames(x), sep="_")
 x_prot <- read.table("valid_filt_Proteomics_0_64_copy.txt", header=TRUE, fill=TRUE, sep="\t", stringsAsFactors=FALSE)
 x_prot <- x_prot[-1, ] ## remove first row
+
 ## take first entry of "Majority.protein.IDs"
 rownames(x_prot) <- unlist(lapply(strsplit(x_prot[, "Majority.protein.IDs"], split=";"), "[", 1))
 
@@ -21,13 +22,24 @@ colnames(x)[colnames(x) == "Intensity.R_16_22"] <- "Intensity.R_16_2_2"
 x <- x[,grep(colnames(x), pattern="Intensity")]
 x_prot <- x_prot[, grep(colnames(x_prot), pattern="Intensity")]
 
+## remove specific colnames 
+x <- x[, !colnames(x) %in% c("Intensity",  "Intensity.0_6", "Intensity.0_7")]
+x_prot <- x_prot[, -c(which(colnames(x_prot)=="Intensity"),  grep(colnames(x_prot), pattern="y[.]0_6|y[.]0_7|y[.]0_8"))]
+
+# plot(hclust(dist(x_prot_imp)), labels=F)
+# x_prot_hclust <- hclust(dist(x_prot_imp))
+# cutree_3 <- cutree(x_prot_hclust, k=12)
+# which(cutree_3 != 1)
+## manually remove outliers in proteome file
+outlier <- read.table("outlier features_proteome.csv", sep=";", header=TRUE)[, "Name"]
+na_outlier <- apply(x_prot[which(rownames(x_prot) %in% outlier),], 1, function(x) sum(is.na(x)))
+hist(na_outlier)
+x_prot <- x_prot[-which(rownames(x_prot) %in% outlier),]
+
 ## divide by 75% quantile
 x <- apply(x, 2, function(y) y / quantile(y, .75, na.rm=TRUE))
 x_prot <- apply(x_prot, 2, function(y) y / quantile(y, .75, na.rm=TRUE))
 
-## remove specific colnames 
-x <- x[, !colnames(x) %in% c("Intensity",  "Intensity.0_6", "Intensity.0_7")]
-x_prot <- x_prot[, -c(which(colnames(x_prot)=="Intensity"),  grep(colnames(x_prot), pattern="y[.]0_6|y[.]0_7|y[.]0_8"))]
 
 ## check for outliers --> PCA and manually remove
 library(pcaMethods)
@@ -427,6 +439,11 @@ stopifnot(is.numeric(x_DMN_prot))
 x_DN_prot <- ifelse(is.na(x_DN_prot), NA, x_DN_prot)
 x_DMN_prot <- ifelse(is.na(x_DMN_prot), NA, x_DMN_prot)
 
+################################################################################
+pheatmap(x_DMN, scale="row")
+pheatmap(x_DMN_prot, scale="row") ## 4/5 cluster together 
+################################################################################
+
 ## use DN for A2 and B2
 #### A2 ####
 t_0_a2 <- x_DN[, grep(colnames(x_DN), pattern = "Intensity.0_")]
@@ -622,6 +639,7 @@ x_DMN_sort <- x_DMN[, c("Intensity.0_1", "Intensity.0_2", "Intensity.0_3", "Inte
     "Intensity.R_16_3", "Intensity.R_32_1", "Intensity.R_32_2", "Intensity.R_32_3",
     "Intensity.R_64_1", "Intensity.R_64_2" ,"Intensity.R_64_3"
 )]
+pheatmap(x_DMN_sort, scale="row")
 
 x_DMN_prot_sort <- x_DMN_prot[, c("Intensity.0_1", "Intensity.0_2", "Intensity.0_3", "Intensity.0_4", "Intensity.0_5", 
     "Intensity.C_05_1", "Intensity.C_05_2", "Intensity.C_05_3",  "Intensity.C_05_4",  "Intensity.C_05_5", 
@@ -642,6 +660,7 @@ x_DMN_prot_sort <- x_DMN_prot[, c("Intensity.0_1", "Intensity.0_2", "Intensity.0
     "Intensity.R_32_1", "Intensity.R_32_2", "Intensity.R_32_3", "Intensity.R_32_4", "Intensity.R_32_5",
     "Intensity.R_64_1", "Intensity.R_64_2" , "Intensity.R_64_3", "Intensity.R_64_4", "Intensity.R_64_5"
 )]
+pheatmap(x_DMN_prot_sort, scale="row")
 
 ## find significant features
 ## 2 factor anova
