@@ -36,9 +36,9 @@ na_outlier <- apply(x_prot[which(rownames(x_prot) %in% outlier),], 1, function(x
 hist(na_outlier)
 x_prot <- x_prot[-which(rownames(x_prot) %in% outlier),]
 
-## divide by 75% quantile
+## divide by 75% quantile and 50% quantile
 x <- apply(x, 2, function(y) y / quantile(y, .75, na.rm=TRUE))
-x_prot <- apply(x_prot, 2, function(y) y / quantile(y, .75, na.rm=TRUE))
+x_prot <- apply(x_prot, 2, function(y) y / quantile(y, .5, na.rm=TRUE))
 
 
 ## check for outliers --> PCA and manually remove
@@ -136,6 +136,7 @@ rpcaNN <- pca(t(x_outl), method="ppca", center=TRUE, scale="none", nPcs=5, seed 
 rpcaNN_prot <- pca(t(x_outl_prot), method="ppca", center=TRUE, scale="none", nPcs=5, seed = 3455, na.rm = TRUE)
 slplot(rpcaNN, pcs=c(1,2), scoresLoadings = c(T, F), scex=0.5) ## looks ok, do not remove outliers
 slplot(rpcaNN_prot, pcs=c(1,2), scoresLoadings = c(T, F), scex=0.5) ## looks ok, do not remove outliers
+
 
 ## calculating average of replicates and delete unnecessary replicates
 average_rep <- function(x=x, pattern_grep="Intensity[.]0_1", pattern_bind="Intensity.0_1") {
@@ -283,18 +284,20 @@ average_cond <- function(x, condition) {
 
 
 
-## Strategy 1 (only 75% quantile)
+## Strategy 1 (only 75%/50% quantile)
 ######### 1A  ##########
 ## fc per replicate
 x <- x_imp
 x_old <- x
 x <- x_old
-x <- log2(x+1)
+x <- log2(x)
 
 x_prot <- x_prot_imp
 x_old_prot <- x_prot
 x_prot <- x_old_prot
-x_prot <- log2(x_prot+1)
+x_prot <- log2(x_prot)
+
+write.table(x_prot, file="prot_median_log_normalized.csv", sep="\t", dec=".")
 
 values0 <- x[, grep(colnames(x), pattern = "Intensity.0_")]
 fc_0_a1 <- values0 / values0
@@ -342,10 +345,10 @@ fc_all_a1_prot <- cbind(fc_0_a1_m_prot, fc_05_a1_m_prot, fc_1_a1_m_prot, fc_2_a1
 
 ##### Strategy 1 B-1 average first replicates then calculate fc ######
 x <- x_old
-x <- log2(x+1)
+x <- log2(x)
 
 x_prot <- x_old_prot
-x_prot <- log2(x_prot+1)
+x_prot <- log2(x_prot)
 
 fc_0_b1 <- average_cond(x, "Intensity[.]0_") / average_cond(x, "Intensity[.]0_")
 fc_05_b1 <- average_cond(x, "Intensity.R_05_") / average_cond(x, "Intensity.C_05_")
@@ -423,8 +426,8 @@ x_DN_prot <- x_DNtemp_prot + x.med.all_prot
 ## sample median normalization
 sample.med <- apply(x_DN,2, median, na.rm=T)
 x_DMN <- sweep(x_DN,2, sample.med, FUN="-") + median(sample.med)
-x_DN <- log2(as.matrix(x_DN) + 1)
-x_DMN <- log2(as.matrix(x_DMN) + 1)
+x_DN <- log2(as.matrix(x_DN))
+x_DMN <- log2(as.matrix(x_DMN))
 stopifnot(is.numeric(x_DN))
 stopifnot(is.numeric(x_DMN))
 x_DN <- ifelse(is.na(x_DN), NA, x_DN)
@@ -432,8 +435,8 @@ x_DMN <- ifelse(is.na(x_DMN), NA, x_DMN)
 
 sample.med_prot <- apply(x_DN_prot, 2, median, na.rm=T)
 x_DMN_prot <- sweep(x_DN_prot, 2, sample.med_prot, FUN="-") + median(sample.med_prot)
-x_DN_prot <- log2(as.matrix(x_DN_prot) + 1)
-x_DMN_prot <- log2(as.matrix(x_DMN_prot) + 1)
+x_DN_prot <- log2(as.matrix(x_DN_prot))
+x_DMN_prot <- log2(as.matrix(x_DMN_prot))
 stopifnot(is.numeric(x_DN_prot))
 stopifnot(is.numeric(x_DMN_prot))
 x_DN_prot <- ifelse(is.na(x_DN_prot), NA, x_DN_prot)
