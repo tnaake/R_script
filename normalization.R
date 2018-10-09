@@ -26,6 +26,11 @@ x_prot <- x_prot[, grep(colnames(x_prot), pattern="Intensity")]
 x <- x[, !colnames(x) %in% c("Intensity",  "Intensity.0_6", "Intensity.0_7")]
 x_prot <- x_prot[, -c(which(colnames(x_prot)=="Intensity"),  grep(colnames(x_prot), pattern="y[.]0_6|y[.]0_7|y[.]0_8"))]
 
+x <- as.matrix(x)
+mode(x) <- "numeric"
+x_prot <- as.matrix(x_prot)
+mode(x_prot) <- "numeric"
+
 # plot(hclust(dist(x_prot_imp)), labels=F)
 # x_prot_hclust <- hclust(dist(x_prot_imp))
 # cutree_3 <- cutree(x_prot_hclust, k=12)
