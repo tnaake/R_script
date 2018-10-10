@@ -381,6 +381,7 @@ fc_all_b1_prot <- cbind(fc_0_b1_prot, fc_05_b1_prot, fc_1_b1_prot, fc_2_b1_prot,
 ### 75 % quantile + median normalization 
 x <- x_old 
 # x_prot <- x_old_prot 
+x <- log2(as.matrix(x) + 1)
 
 ind_batch1 <- grep(colnames(x), pattern="0_1|05_1|1_1|2_1|4_1|8_1|16_1|32_1|64_1")
 ind_batch2 <- grep(colnames(x), pattern="0_2|05_2|1_2|2_2|4_2|8_2|16_2|32_2|64_2")
@@ -431,8 +432,6 @@ x_DN <- x_DNtemp + x.med.all
 ## sample median normalization
 sample.med <- apply(x_DN,2, median, na.rm=T)
 x_DMN <- sweep(x_DN,2, sample.med, FUN="-") + median(sample.med)
-x_DN <- log2(as.matrix(x_DN) + 1)
-x_DMN <- log2(as.matrix(x_DMN) + 1)
 stopifnot(is.numeric(x_DN))
 stopifnot(is.numeric(x_DMN))
 x_DN <- ifelse(is.na(x_DN), NA, x_DN)
@@ -453,178 +452,96 @@ pheatmap(x_DMN, scale="row")
 
 ## use DN for A2 and B2
 #### A2 ####
-t_0_a2 <- x_DN[, grep(colnames(x_DN), pattern = "Intensity.0_")]
-fc_0_a2 <- t_0_a2 / t_0_a2
-fc_05_a2 <- calculate_fc(x_DN, "^Intensity.*_05_")
-fc_1_a2 <- calculate_fc(x_DN, "^Intensity.*_1_") 
-fc_2_a2 <- calculate_fc(x_DN, "^Intensity.*_2_")
-fc_4_a2 <- calculate_fc(x_DN, "^Intensity.*_4_")
-fc_8_a2 <- calculate_fc(x_DN, "^Intensity.*_8_")
-fc_16_a2 <- calculate_fc(x_DN, "^Intensity.*_16_")
-fc_32_a2 <- calculate_fc(x_DN, "^Intensity.*_32_")
-fc_64_a2 <- calculate_fc(x_DN, "^Intensity.*_64_")
+## makes mathematically no sense to calculate fold change from batch median 
+## normalized values
+# t_0_a2 <- x_DN[, grep(colnames(x_DN), pattern = "Intensity.0_")]
+# fc_0_a2 <- t_0_a2 / t_0_a2
+# fc_05_a2 <- calculate_fc(x_DN, "^Intensity.*_05_")
+# fc_1_a2 <- calculate_fc(x_DN, "^Intensity.*_1_") 
+# fc_2_a2 <- calculate_fc(x_DN, "^Intensity.*_2_")
+# fc_4_a2 <- calculate_fc(x_DN, "^Intensity.*_4_")
+# fc_8_a2 <- calculate_fc(x_DN, "^Intensity.*_8_")
+# fc_16_a2 <- calculate_fc(x_DN, "^Intensity.*_16_")
+# fc_32_a2 <- calculate_fc(x_DN, "^Intensity.*_32_")
+# fc_64_a2 <- calculate_fc(x_DN, "^Intensity.*_64_")
 
-fc_0_a2_m <- apply(fc_0_a2, 1, mean, na.rm = TRUE) 
-fc_05_a2_m <- apply(fc_05_a2, 1, mean, na.rm = TRUE)
-fc_1_a2_m <- apply(fc_1_a2, 1, mean, na.rm = TRUE)
-fc_2_a2_m <- apply(fc_2_a2, 1, mean, na.rm = TRUE)
-fc_4_a2_m <- apply(fc_4_a2, 1, mean, na.rm = TRUE)
-fc_8_a2_m <- apply(fc_8_a2, 1, mean, na.rm = TRUE)
-fc_16_a2_m <- apply(fc_16_a2, 1, mean, na.rm = TRUE)
-fc_32_a2_m <- apply(fc_32_a2, 1, mean, na.rm = TRUE)
-fc_64_a2_m <- apply(fc_64_a2, 1, mean, na.rm = TRUE)
-fc_all_a2 <- cbind(fc_0_a2_m, fc_05_a2_m, fc_1_a2_m, fc_2_a2_m, fc_4_a2_m, fc_8_a2_m, fc_16_a2_m, fc_32_a2_m, fc_64_a2_m)
-
-# t_0_a2_prot <- x_DN_prot[, grep(colnames(x_DN_prot), pattern = "Intensity.0_")]
-# fc_0_a2_prot <- t_0_a2_prot / t_0_a2_prot
-# fc_05_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_05_")
-# fc_1_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_1_") 
-# fc_2_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_2_")
-# fc_4_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_4_")
-# fc_8_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_8_")
-# fc_16_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_16_")
-# fc_32_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_32_")
-# fc_64_a2_prot <- calculate_fc(x_DN_prot, "^Intensity.*_64_")
-
-# fc_0_a2_m_prot <- apply(fc_0_a2_prot, 1, mean, na.rm = TRUE) 
-# fc_05_a2_m_prot <- apply(fc_05_a2_prot, 1, mean, na.rm = TRUE)
-# fc_1_a2_m_prot <- apply(fc_1_a2_prot, 1, mean, na.rm = TRUE)
-# fc_2_a2_m_prot <- apply(fc_2_a2_prot, 1, mean, na.rm = TRUE)
-# fc_4_a2_m_prot <- apply(fc_4_a2_prot, 1, mean, na.rm = TRUE)
-# fc_8_a2_m_prot <- apply(fc_8_a2_prot, 1, mean, na.rm = TRUE)
-# fc_16_a2_m_prot <- apply(fc_16_a2_prot, 1, mean, na.rm = TRUE)
-# fc_32_a2_m_prot <- apply(fc_32_a2_prot, 1, mean, na.rm = TRUE)
-# fc_64_a2_m_prot <- apply(fc_64_a2_prot, 1, mean, na.rm = TRUE)
-# fc_all_a2_prot <- cbind(fc_0_a2_m_prot, fc_05_a2_m_prot, fc_1_a2_m_prot, fc_2_a2_m_prot, fc_4_a2_m_prot, fc_8_a2_m_prot, fc_16_a2_m_prot, fc_32_a2_m_prot, fc_64_a2_m_prot)
+# fc_0_a2_m <- apply(fc_0_a2, 1, mean, na.rm = TRUE) 
+# fc_05_a2_m <- apply(fc_05_a2, 1, mean, na.rm = TRUE)
+# fc_1_a2_m <- apply(fc_1_a2, 1, mean, na.rm = TRUE)
+# fc_2_a2_m <- apply(fc_2_a2, 1, mean, na.rm = TRUE)
+# fc_4_a2_m <- apply(fc_4_a2, 1, mean, na.rm = TRUE)
+# fc_8_a2_m <- apply(fc_8_a2, 1, mean, na.rm = TRUE)
+# fc_16_a2_m <- apply(fc_16_a2, 1, mean, na.rm = TRUE)
+# fc_32_a2_m <- apply(fc_32_a2, 1, mean, na.rm = TRUE)
+# fc_64_a2_m <- apply(fc_64_a2, 1, mean, na.rm = TRUE)
+# fc_all_a2 <- cbind(fc_0_a2_m, fc_05_a2_m, fc_1_a2_m, fc_2_a2_m, fc_4_a2_m, fc_8_a2_m, fc_16_a2_m, fc_32_a2_m, fc_64_a2_m)
 
 #### B2 ####
 ## average first, then calculate fc
-fc_0_b2 <- average_cond(x_DN, "Intensity[.]0_") / average_cond(x_DN, "Intensity[.]0_")
-fc_05_b2 <- average_cond(x_DN, "Intensity.R_05_") / average_cond(x_DN, "Intensity.C_05_")
-fc_1_b2 <- average_cond(x_DN, "Intensity.R_1_") / average_cond(x_DN, "Intensity.C_1_")
-fc_2_b2 <- average_cond(x_DN, "Intensity.R_2_") / average_cond(x_DN, "Intensity.C_2_")
-fc_4_b2 <- average_cond(x_DN, "Intensity.R_4_") / average_cond(x_DN, "Intensity.C_4_")
-fc_8_b2 <- average_cond(x_DN, "Intensity.R_8_") / average_cond(x_DN, "Intensity.C_8_")
-fc_16_b2 <- average_cond(x_DN, "Intensity.R_16_") / average_cond(x_DN, "Intensity.C_16_")
-fc_32_b2 <- average_cond(x_DN, "Intensity.R_32_") / average_cond(x_DN, "Intensity.C_32_")
-fc_64_b2 <- average_cond(x_DN, "Intensity.R_64_") / average_cond(x_DN, "Intensity.C_64_")
-fc_all_b2 <- cbind(fc_0_b2, fc_05_b2, fc_1_b2, fc_2_b2, fc_4_b2, fc_8_b2, fc_16_b2, fc_32_b2, fc_64_b2)
-
-# fc_0_b2_prot <- average_cond(x_DN_prot, "Intensity[.]0_") / average_cond(x_DN_prot, "Intensity[.]0_")
-# fc_05_b2_prot <- average_cond(x_DN_prot, "Intensity.R_05_") / average_cond(x_DN_prot, "Intensity.C_05_")
-# fc_1_b2_prot <- average_cond(x_DN_prot, "Intensity.R_1_") / average_cond(x_DN_prot, "Intensity.C_1_")
-# fc_2_b2_prot <- average_cond(x_DN_prot, "Intensity.R_2_") / average_cond(x_DN_prot, "Intensity.C_2_")
-# fc_4_b2_prot <- average_cond(x_DN_prot, "Intensity.R_4_") / average_cond(x_DN_prot, "Intensity.C_4_")
-# fc_8_b2_prot <- average_cond(x_DN_prot, "Intensity.R_8_") / average_cond(x_DN_prot, "Intensity.C_8_")
-# fc_16_b2_prot <- average_cond(x_DN_prot, "Intensity.R_16_") / average_cond(x_DN_prot, "Intensity.C_16_")
-# fc_32_b2_prot <- average_cond(x_DN_prot, "Intensity.R_32_") / average_cond(x_DN_prot, "Intensity.C_32_")
-# fc_64_b2_prot <- average_cond(x_DN_prot, "Intensity.R_64_") / average_cond(x_DN_prot, "Intensity.C_64_")
-# fc_all_b2_prot <- cbind(fc_0_b2_prot, fc_05_b2_prot, fc_1_b2_prot, fc_2_b2_prot, fc_4_b2_prot, fc_8_b2_prot, fc_16_b2_prot, fc_32_b2_prot, fc_64_b2_prot)
+# fc_0_b2 <- average_cond(x_DN, "Intensity[.]0_") / average_cond(x_DN, "Intensity[.]0_")
+# fc_05_b2 <- average_cond(x_DN, "Intensity.R_05_") / average_cond(x_DN, "Intensity.C_05_")
+# fc_1_b2 <- average_cond(x_DN, "Intensity.R_1_") / average_cond(x_DN, "Intensity.C_1_")
+# fc_2_b2 <- average_cond(x_DN, "Intensity.R_2_") / average_cond(x_DN, "Intensity.C_2_")
+# fc_4_b2 <- average_cond(x_DN, "Intensity.R_4_") / average_cond(x_DN, "Intensity.C_4_")
+# fc_8_b2 <- average_cond(x_DN, "Intensity.R_8_") / average_cond(x_DN, "Intensity.C_8_")
+# fc_16_b2 <- average_cond(x_DN, "Intensity.R_16_") / average_cond(x_DN, "Intensity.C_16_")
+# fc_32_b2 <- average_cond(x_DN, "Intensity.R_32_") / average_cond(x_DN, "Intensity.C_32_")
+# fc_64_b2 <- average_cond(x_DN, "Intensity.R_64_") / average_cond(x_DN, "Intensity.C_64_")
+# fc_all_b2 <- cbind(fc_0_b2, fc_05_b2, fc_1_b2, fc_2_b2, fc_4_b2, fc_8_b2, fc_16_b2, fc_32_b2, fc_64_b2)
 
 ## use DMN for A3 and B3
 #### A3 ####
-t_0_a3 <- x_DMN[, grep(colnames(x_DMN), pattern = "Intensity.0_")]
-fc_0_a3 <- t_0_a3 / t_0_a3
-fc_05_a3 <- calculate_fc(x_DMN, "^Intensity.*_05_")
-fc_1_a3 <- calculate_fc(x_DMN, "^Intensity.*_1_") 
-fc_2_a3 <- calculate_fc(x_DMN, "^Intensity.*_2_")
-fc_4_a3 <- calculate_fc(x_DMN, "^Intensity.*_4_")
-fc_8_a3 <- calculate_fc(x_DMN, "^Intensity.*_8_")
-fc_16_a3 <- calculate_fc(x_DMN, "^Intensity.*_16_")
-fc_32_a3 <- calculate_fc(x_DMN, "^Intensity.*_32_")
-fc_64_a3 <- calculate_fc(x_DMN, "^Intensity.*_64_")
-
-fc_0_a3_m <- apply(fc_0_a3, 1, mean, na.rm = TRUE) 
-fc_05_a3_m <- apply(fc_05_a3, 1, mean, na.rm = TRUE)
-fc_1_a3_m <- apply(fc_1_a3, 1, mean, na.rm = TRUE)
-fc_2_a3_m <- apply(fc_2_a3, 1, mean, na.rm = TRUE)
-fc_4_a3_m <- apply(fc_4_a3, 1, mean, na.rm = TRUE)
-fc_8_a3_m <- apply(fc_8_a3, 1, mean, na.rm = TRUE)
-fc_16_a3_m <- apply(fc_16_a3, 1, mean, na.rm = TRUE)
-fc_32_a3_m <- apply(fc_32_a3, 1, mean, na.rm = TRUE)
-fc_64_a3_m <- apply(fc_64_a3, 1, mean, na.rm = TRUE)
-fc_all_a3 <- cbind(fc_0_a3_m, fc_05_a3_m, fc_1_a3_m, fc_2_a3_m, fc_4_a3_m, fc_8_a3_m, fc_16_a3_m, fc_32_a3_m, fc_64_a3_m)
-
-# t_0_a3_prot <- x_DMN_prot[, grep(colnames(x_DMN_prot), pattern = "Intensity.0_")]
-# fc_0_a3_prot <- t_0_a3_prot / t_0_a3_prot
-# fc_05_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_05_")
-# fc_1_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_1_") 
-# fc_2_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_2_")
-# fc_4_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_4_")
-# fc_8_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_8_")
-# fc_16_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_16_")
-# fc_32_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_32_")
-# fc_64_a3_prot <- calculate_fc(x_DMN_prot, "^Intensity.*_64_")
-
-# fc_0_a3_m_prot <- apply(fc_0_a3_prot, 1, mean, na.rm = TRUE) 
-# fc_05_a3_m_prot <- apply(fc_05_a3_prot, 1, mean, na.rm = TRUE)
-# fc_1_a3_m_prot <- apply(fc_1_a3_prot, 1, mean, na.rm = TRUE)
-# fc_2_a3_m_prot <- apply(fc_2_a3_prot, 1, mean, na.rm = TRUE)
-# fc_4_a3_m_prot <- apply(fc_4_a3_prot, 1, mean, na.rm = TRUE)
-# fc_8_a3_m_prot <- apply(fc_8_a3_prot, 1, mean, na.rm = TRUE)
-# fc_16_a3_m_prot <- apply(fc_16_a3_prot, 1, mean, na.rm = TRUE)
-# fc_32_a3_m_prot <- apply(fc_32_a3_prot, 1, mean, na.rm = TRUE)
-# fc_64_a3_m_prot <- apply(fc_64_a3_prot, 1, mean, na.rm = TRUE)
-# fc_all_a3_prot <- cbind(fc_0_a3_m_prot, fc_05_a3_m_prot, fc_1_a3_m_prot, fc_2_a3_m_prot, fc_4_a3_m_prot, fc_8_a3_m_prot, fc_16_a3_m_prot, fc_32_a3_m_prot, fc_64_a3_m_prot)
+# t_0_a3 <- x_DMN[, grep(colnames(x_DMN), pattern = "Intensity.0_")]
+# fc_0_a3 <- t_0_a3 / t_0_a3
+# fc_05_a3 <- calculate_fc(x_DMN, "^Intensity.*_05_")
+# fc_1_a3 <- calculate_fc(x_DMN, "^Intensity.*_1_") 
+# fc_2_a3 <- calculate_fc(x_DMN, "^Intensity.*_2_")
+# fc_4_a3 <- calculate_fc(x_DMN, "^Intensity.*_4_")
+# fc_8_a3 <- calculate_fc(x_DMN, "^Intensity.*_8_")
+# fc_16_a3 <- calculate_fc(x_DMN, "^Intensity.*_16_")
+# fc_32_a3 <- calculate_fc(x_DMN, "^Intensity.*_32_")
+# fc_64_a3 <- calculate_fc(x_DMN, "^Intensity.*_64_")
+# 
+# fc_0_a3_m <- apply(fc_0_a3, 1, mean, na.rm = TRUE) 
+# fc_05_a3_m <- apply(fc_05_a3, 1, mean, na.rm = TRUE)
+# fc_1_a3_m <- apply(fc_1_a3, 1, mean, na.rm = TRUE)
+# fc_2_a3_m <- apply(fc_2_a3, 1, mean, na.rm = TRUE)
+# fc_4_a3_m <- apply(fc_4_a3, 1, mean, na.rm = TRUE)
+# fc_8_a3_m <- apply(fc_8_a3, 1, mean, na.rm = TRUE)
+# fc_16_a3_m <- apply(fc_16_a3, 1, mean, na.rm = TRUE)
+# fc_32_a3_m <- apply(fc_32_a3, 1, mean, na.rm = TRUE)
+# fc_64_a3_m <- apply(fc_64_a3, 1, mean, na.rm = TRUE)
+# fc_all_a3 <- cbind(fc_0_a3_m, fc_05_a3_m, fc_1_a3_m, fc_2_a3_m, fc_4_a3_m, fc_8_a3_m, fc_16_a3_m, fc_32_a3_m, fc_64_a3_m)
 
 #### B3 ####
 ## average first, then calculate fc
-fc_0_b3 <- average_cond(x_DMN, "Intensity[.]0_") / average_cond(x_DMN, "Intensity[.]0_")
-fc_05_b3 <- average_cond(x_DMN, "Intensity.R_05_") / average_cond(x_DMN, "Intensity.C_05_")
-fc_1_b3 <- average_cond(x_DMN, "Intensity.R_1_") / average_cond(x_DMN, "Intensity.C_1_")
-fc_2_b3 <- average_cond(x_DMN, "Intensity.R_2_") / average_cond(x_DMN, "Intensity.C_2_")
-fc_4_b3 <- average_cond(x_DMN, "Intensity.R_4_") / average_cond(x_DMN, "Intensity.C_4_")
-fc_8_b3 <- average_cond(x_DMN, "Intensity.R_8_") / average_cond(x_DMN, "Intensity.C_8_")
-fc_16_b3 <- average_cond(x_DMN, "Intensity.R_16_") / average_cond(x_DMN, "Intensity.C_16_")
-fc_32_b3 <- average_cond(x_DMN, "Intensity.R_32_") / average_cond(x_DMN, "Intensity.C_32_")
-fc_64_b3 <- average_cond(x_DMN, "Intensity.R_64_") / average_cond(x_DMN, "Intensity.C_64_")
-fc_all_b3 <- cbind(fc_0_b3, fc_05_b3, fc_1_b3, fc_2_b3, fc_4_b3, fc_8_b3, fc_16_b3, fc_32_b3, fc_64_b3)
-
-# fc_0_b3_prot <- average_cond(x_DMN_prot, "Intensity[.]0_") / average_cond(x_DMN_prot, "Intensity[.]0_")
-# fc_05_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_05_") / average_cond(x_DMN_prot, "Intensity.C_05_")
-# fc_1_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_1_") / average_cond(x_DMN_prot, "Intensity.C_1_")
-# fc_2_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_2_") / average_cond(x_DMN_prot, "Intensity.C_2_")
-# fc_4_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_4_") / average_cond(x_DMN_prot, "Intensity.C_4_")
-# fc_8_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_8_") / average_cond(x_DMN_prot, "Intensity.C_8_")
-# fc_16_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_16_") / average_cond(x_DMN_prot, "Intensity.C_16_")
-# fc_32_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_32_") / average_cond(x_DMN_prot, "Intensity.C_32_")
-# fc_64_b3_prot <- average_cond(x_DMN_prot, "Intensity.R_64_") / average_cond(x_DMN_prot, "Intensity.C_64_")
-# fc_all_b3_prot <- cbind(fc_0_b3_prot, fc_05_b3_prot, fc_1_b3_prot, fc_2_b3_prot, fc_4_b3_prot, fc_8_b3_prot, fc_16_b3_prot, fc_32_b3_prot, fc_64_b3_prot)
+# fc_0_b3 <- average_cond(x_DMN, "Intensity[.]0_") / average_cond(x_DMN, "Intensity[.]0_")
+# fc_05_b3 <- average_cond(x_DMN, "Intensity.R_05_") / average_cond(x_DMN, "Intensity.C_05_")
+# fc_1_b3 <- average_cond(x_DMN, "Intensity.R_1_") / average_cond(x_DMN, "Intensity.C_1_")
+# fc_2_b3 <- average_cond(x_DMN, "Intensity.R_2_") / average_cond(x_DMN, "Intensity.C_2_")
+# fc_4_b3 <- average_cond(x_DMN, "Intensity.R_4_") / average_cond(x_DMN, "Intensity.C_4_")
+# fc_8_b3 <- average_cond(x_DMN, "Intensity.R_8_") / average_cond(x_DMN, "Intensity.C_8_")
+# fc_16_b3 <- average_cond(x_DMN, "Intensity.R_16_") / average_cond(x_DMN, "Intensity.C_16_")
+# fc_32_b3 <- average_cond(x_DMN, "Intensity.R_32_") / average_cond(x_DMN, "Intensity.C_32_")
+# fc_64_b3 <- average_cond(x_DMN, "Intensity.R_64_") / average_cond(x_DMN, "Intensity.C_64_")
+# fc_all_b3 <- cbind(fc_0_b3, fc_05_b3, fc_1_b3, fc_2_b3, fc_4_b3, fc_8_b3, fc_16_b3, fc_32_b3, fc_64_b3)
 
 ##### visualisation ####
 library(pheatmap)
 fc_all_a1_NAr <- fc_all_a1[apply(fc_all_a1, 1, function(x) !all(x == 1)),]
 fc_all_b1_NAr <- fc_all_b1[apply(fc_all_b1, 1, function(x) !all(x == 1)),]
-fc_all_a2_NAr <- fc_all_a2[apply(fc_all_a2, 1, function(x) !all(x == 1)),]
-fc_all_b2_NAr <- fc_all_b2[apply(fc_all_b2, 1, function(x) !all(x == 1)),]
-fc_all_a3_NAr <- fc_all_a3[apply(fc_all_a3, 1, function(x) !all(x == 1)),]
-fc_all_b3_NAr <- fc_all_b3[apply(fc_all_b3, 1, function(x) !all(x == 1)),]
 pheatmap(fc_all_a1_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
 pheatmap(fc_all_b1_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-pheatmap(fc_all_a2_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-pheatmap(fc_all_b2_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-pheatmap(fc_all_a3_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-pheatmap(fc_all_b3_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
 
 fc_all_a1_NAr_prot <- fc_all_a1_prot[apply(fc_all_a1_prot, 1, function(x) !all(x == 1)),]
 fc_all_b1_NAr_prot <- fc_all_b1_prot[apply(fc_all_b1_prot, 1, function(x) !all(x == 1)),]
-# fc_all_a2_NAr_prot <- fc_all_a2_prot[apply(fc_all_a2_prot, 1, function(x) !all(x == 1)),]
-# fc_all_b2_NAr_prot <- fc_all_b2_prot[apply(fc_all_b2_prot, 1, function(x) !all(x == 1)),]
-# fc_all_a3_NAr_prot <- fc_all_a3_prot[apply(fc_all_a3_prot, 1, function(x) !all(x == 1)),]
-# fc_all_b3_NAr_prot <- fc_all_b3_prot[apply(fc_all_b3_prot, 1, function(x) !all(x == 1)),]
 pheatmap(fc_all_a1_NAr_prot, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
 pheatmap(fc_all_b1_NAr_prot, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-# pheatmap(fc_all_a2_NAr_prot, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-# pheatmap(fc_all_b2_NAr_prot, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-# pheatmap(fc_all_a3_NAr_prot, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-# pheatmap(fc_all_b3_NAr_prot, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
-
-
 
 ## create table with fold changes per sample per 
 fc_x <- cbind(fc_0_a1, fc_05_a1, fc_1_a1, fc_2_a1, fc_4_a1, fc_8_a1, fc_16_a1, fc_32_a1, fc_64_a1)
-fc_DN <- cbind(fc_0_a2, fc_05_a2, fc_1_a2, fc_2_a2, fc_4_a2, fc_8_a2, fc_16_a2, fc_32_a2, fc_64_a2)
-fc_DMN <- cbind(fc_0_a3, fc_05_a3, fc_1_a3, fc_2_a3, fc_4_a3, fc_8_a3, fc_16_a3, fc_32_a3, fc_64_a3)
+# fc_DN <- cbind(fc_0_a2, fc_05_a2, fc_1_a2, fc_2_a2, fc_4_a2, fc_8_a2, fc_16_a2, fc_32_a2, fc_64_a2)
+# fc_DMN <- cbind(fc_0_a3, fc_05_a3, fc_1_a3, fc_2_a3, fc_4_a3, fc_8_a3, fc_16_a3, fc_32_a3, fc_64_a3)
 
 fc_x_prot <- cbind(fc_0_a1_prot, fc_05_a1_prot, fc_1_a1_prot, fc_2_a1_prot, fc_4_a1_prot, fc_8_a1_prot, fc_16_a1_prot, fc_32_a1_prot, fc_64_a1_prot)
 # fc_DN_prot <- cbind(fc_0_a2_prot, fc_05_a2_prot, fc_1_a2_prot, fc_2_a2_prot, fc_4_a2_prot, fc_8_a2_prot, fc_16_a2_prot, fc_32_a2_prot, fc_64_a2_prot)
@@ -711,7 +628,6 @@ x_prot_fc_1 <- fc_x_prot ## [inds_1, ]
 # inds_2 <- match(id_phsi, id_prot)
 # inds_2 <- is.na(inds_2)
 x_DMN_2 <- x_DMN_sort # [inds_2, ]
-x_DMN_fc_2 <- fc_DMN # [inds_2, ]
 x_2 <- x_sort
 x_fc_2 <- fc_x
 
@@ -725,8 +641,7 @@ id_phsi_3 <- id_phsi[inds_3]
 inds_3_cut <- match(id_phsi_3, id_prot)
 x_DMN_norm_3 <- x_DMN_3 / x_prot_sort[inds_3_cut, colnames(x_prot_sort) %in% colnames(x_DMN_sort)]
 x_norm_3 <- x_3 / x_prot_sort[inds_3_cut, colnames(x_prot_sort) %in% colnames(x_sort)]
-##x_DMN_prot_3 <- x_DMN_prot_sort[sort(unique(inds_3_cut)), ]
-##x_DMN_prot_fc_3 <- fc_DMN_prot[sort(unique(inds_3_cut)), ]
+
 
 ## calculate anova per feature and return error messages if not possible
 aov_l <- function(x=x_DMN_sort, treatment=treatment, time=time) {
@@ -794,16 +709,13 @@ pvalue_fc_adj_1 <- adj_pvalue_fc(pvalue_fc_1)
 
 ## 2. 
 aov_DMN_2 <- aov_l(x_DMN_2, treatment, time)
-aov_DMN_fc_2 <- aov_fc_l(x_DMN_fc_2, time_fc)
 aov_2 <- aov_l(x_2, treatment, time)
 aov_fc_2 <- aov_fc_l(x_fc_2, time_fc)
 pvalue_DMN_2 <- get_pvalue(aov_DMN_2)
 pvalue_2 <- get_pvalue(aov_2)
-pvalue_DMN_fc_2 <- get_pvalue_fc(aov_DMN_fc_2)
 pvalue_fc_2 <- get_pvalue_fc(aov_fc_2)
 pvalue_DMN_adj_2 <- adj_pvalue(pvalue_DMN_2)
 pvalue_adj_2 <- adj_pvalue(pvalue_2)
-pvalue_DMN_fc_adj_2 <- adj_pvalue(pvalue_DMN_fc_2)
 pvalue_fc_adj_2 <- adj_pvalue_fc(pvalue_fc_2)
 
 ## 3.
@@ -825,31 +737,31 @@ source("functions_clustering.R")
 ## 1. 
 x_prot_fc_1_sign <- x_prot_fc_1[which(pvalue_fc_adj_1 < 0.05), ]
 x_prot_1_sign <- x_prot_1[sort(unique(c(which(pvalue_adj_1[[1]] < 0.05), which(pvalue_adj_1[[2]] < 0.05), which(pvalue_adj_1[[3]] < 0.05)))), ]
-statOut_prot_fc_1 <- statWrapper(dat=x_prot_fc_1_sign, NumReps=5, NumCond=18, isPaired=F, isStat=T) ##
+## statWrapper
+statOut_prot_fc_1 <- statWrapper(dat=x_prot_fc_1_sign, NumReps=5, NumCond=9, isPaired=F, isStat=T) ## only one feature
 statOut_prot_1 <- statWrapper(dat=x_prot_1_sign, NumReps=5, NumCond=18, isPaired=F, isStat=T)
+## estimClustNum
 #clustNumOut_prot_fc_1 <- estimClustNum(dat=statOut_prot_fc_1$dat, maxClust=20, cores=1)
 clustNumOut_prot_1 <- estimClustNum(dat=statOut_prot_1$dat, maxClust=20, cores=1)
+## runClustWrapper
 #ClustOut_vs_prot_fc_2 <- runClustWrapper(dat=statOut_prot_fc_1$dat, clustNumOut_prot_fc_1$numclust_vs, proteins=NULL, VSClust=T, cores=1)
 #ClustOut_st_prot_fc_2 <- runClustWrapper(dat=statOut_prot_fc_1$dat, clustNumOut_prot_fc_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
 ClustOut_vs_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_vs, proteins=NULL, VSClust=T, cores=1)
 ClustOut_st_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
 
 ## 2. 
-x_DMN_fc_2_sign <- x_DMN_fc_2[which(pvalue_DMN_fc_adj_2 < 0.05), ]
 x_fc_2_sign <- x_fc_2[which(pvalue_fc_adj_2 < 0.05), ]
 x_DMN_2_sign <- x_DMN_2[sort(unique(c(which(pvalue_DMN_adj_2[[1]] < 0.05), which(pvalue_DMN_adj_2[[2]] < 0.05), which(pvalue_DMN_adj_2[[3]] < 0.05)))), ]
-x_DMN_2_sign <- x_DMN_2_sign[-which(is.na(x_DMN_2_sign), arr.ind=T)[,1], ] ## remove lines with NA values
 x_2_sign <- x_2[sort(unique(c(which(pvalue_adj_2[[1]] < 0.05), which(pvalue_adj_2[[2]] < 0.05), which(pvalue_adj_2[[3]] < 0.05)))), ]
-statOut_x_DMN_fc_2 <- statWrapper(dat=x_DMN_fc_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T) ## dim 0
-statOut_x_fc_2 <- statWrapper(dat=x_fc_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T)
-statOut_x_DMN_2 <- statWrapper(dat=x_DMN_2_sign, NumReps=3, NumCond=17, isPaired=F, isStat=T)
-statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T)
-#clustNumOut_x_DMN_fc_2 <- estimClustNum(dat=statOut_x_DMN_fc_2$dat, maxClust=20, cores=1)
+## statWrapper
+statOut_x_fc_2 <- statWrapper(dat=x_fc_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T) ## ?? too few ??
+statOut_x_DMN_2 <- statWrapper(dat=x_DMN_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
+statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
+## estimClustNum
 clustNumOut_x_fc_2 <- estimClustNum(dat=statOut_x_fc_2$dat, maxClust=20, cores=1)
 clustNumOut_x_DMN_2 <- estimClustNum(dat=statOut_x_DMN_2$dat, maxClust=20, cores=1)
 clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=20, cores=1)
-#ClustOut_vs_DMN_fc_2 <- runClustWrapper(dat=statOut_x_DMN_fc_2$dat, clustNumOut_x_DMN_fc_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-#ClustOut_st_DMN_fc_2 <- runClustWrapper(dat=statOut_x_DMN_fc_2$dat, clustNumOut_x_DMN_fc_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
+## run clustWrapper
 ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
 ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
 ClustOut_vs_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
@@ -858,13 +770,16 @@ ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust
 ClustOut_st_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
 
 
-## 3. ## remove rows with NA
+## 3.
 x_DMN_norm_3_sign <- x_DMN_norm_3[sort(unique(c(which(pvalue_DMN_norm_adj_3[[1]] < 0.05), which(pvalue_DMN_norm_adj_3[[2]] < 0.05), which(pvalue_DMN_norm_adj_3[[3]] < 0.05)))),]
 x_norm_3_sign <- x_norm_3[sort(unique(c(which(pvalue_norm_adj_3[[1]] < 0.05), which(pvalue_norm_adj_3[[2]] < 0.05), which(pvalue_norm_adj_3[[3]] < 0.05)))),]
-statOut_x_DMN_norm_3 <- statWrapper(dat=x_DMN_norm_3_sign, NumReps=3, NumCond=17, isPaired=F, isStat=T)
-statOut_x_norm_3 <- statWrapper(dat=x_norm_3_sign, NumReps=3, NumCond=17, isPaired=F, isStat=T)
+## statWrapper
+statOut_x_DMN_norm_3 <- statWrapper(dat=x_DMN_norm_3_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
+statOut_x_norm_3 <- statWrapper(dat=x_norm_3_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T) ## ?? ## 
+## estimClustNum
 clustNumOut_x_DMN_norm_3 <- estimClustNum(dat=statOut_x_DMN_norm_3$dat, maxClust=20, cores=1)
 clustNumOut_x_norm_3 <- estimClustNum(dat=statOut_x_norm_3$dat, maxClust=20, cores=1)
+## runClustWrapper
 ClustOut_vs_DMN_norm_3 <- runClustWrapper(dat=statOut_x_DMN_norm_3$dat, clustNumOut_x_DMN_norm_3$numclust_vs, proteins=NULL, VSClust=T, cores=1)
 ClustOut_st_DMN_norm_3 <- runClustWrapper(dat=statOut_x_DMN_norm_3$dat, clustNumOut_x_DMN_norm_3$numclust_st, proteins=NULL, VSClust=F, cores=1)
 ClustOut_vs_x_norm_3 <- runClustWrapper(dat=statOut_x_norm_3$dat, clustNumOut_x_norm_3$numclust_vs, proteins=NULL, VSClust=T, cores=1)
