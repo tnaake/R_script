@@ -1,5 +1,5 @@
 ## helper functions for normalization.R
-library(e1071FuzzVec)
+##library(e1071FuzzVec)
 
 statWrapper <- function(dat, NumReps, NumCond, isPaired=F, isStat) {
     
@@ -169,11 +169,11 @@ ClustComp <- function(tData, NSs=10, NClust=NClust, Sds=Sds, cores=1) {
     PExpr2 <- standardise(PExpr)
     
     ## VSclust
-    cls <- mclapply(1:NSs, function(x) e1071FuzzVec::cmeans(exprs(PExpr2), NClust, m=m, verbose=F, iter.max=1000), mc.cores=cores)
+    cls <- mclapply(1:NSs, function(x) cmeans(exprs(PExpr2), NClust, m=m, verbose=F, iter.max=1000), mc.cores=cores)
     print(cls[[1]])
     Bestcl <- cls[[which.min(lapply(cls, function(x) x$withinerror))]]
     ## Standard clust
-    cls <- mclapply(1:NSs, function(x) e1071FuzzVec::cmeans(exprs(PExpr2), NClust, m=mm, verbose=F, iter.max=1000), mc.cores=cores)
+    cls <- mclapply(1:NSs, function(x) cmeans(exprs(PExpr2), NClust, m=mm, verbose=F, iter.max=1000), mc.cores=cores)
     Bestcl2 <- cls[[which.min(lapply(cls, function(x) x$withinerror))]]
     
     # return validation indices
