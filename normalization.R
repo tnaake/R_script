@@ -701,7 +701,7 @@ x_prot_fc_1 <- fc_x_prot ## [inds_1, ]
 x_prot_fc_1 <- ifelse(x_prot_fc_1 == Inf, NA, x_prot_fc_1)
 x_prot_fc_1 <- ifelse(x_prot_fc_1 == -Inf, NA, x_prot_fc_1)
 
-## 2. take all phosphosites from x_DMN and x75
+## 2. take all phosphosites x_sort
 # inds_2 <- match(id_phsi, id_prot)
 # inds_2 <- is.na(inds_2)
 ##x_DMN_2 <- x_DMN_sort # [inds_2, ]
@@ -824,54 +824,60 @@ source("functions_clustering.R")
 ## 1. 
 x_prot_1_sign <- x_prot_1[sort(unique(c(which(pvalue_adj_1[[1]] < 0.05), which(pvalue_adj_1[[2]] < 0.05), which(pvalue_adj_1[[3]] < 0.05)))), ]
 x_prot_fc_1_sign <- x_prot_fc_1[rownames(x_prot_1_sign),]
-## statWrapper
-statOut_prot_fc_1 <- statWrapper(dat=x_prot_fc_1_sign, NumReps=5, NumCond=9, isPaired=F, isStat=T) ## only three feature
-statOut_prot_1 <- statWrapper(dat=x_prot_1_sign, NumReps=5, NumCond=18, isPaired=F, isStat=T)
-## estimClustNum
-clustNumOut_prot_fc_1 <- estimClustNum(dat=statOut_prot_fc_1$dat, maxClust=20, cores=1)
-clustNumOut_prot_1 <- estimClustNum(dat=statOut_prot_1$dat, maxClust=20, cores=1)
-## runClustWrapper
-ClustOut_vs_prot_fc_2 <- runClustWrapper(dat=statOut_prot_fc_1$dat, clustNumOut_prot_fc_1$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-ClustOut_st_prot_fc_2 <- runClustWrapper(dat=statOut_prot_fc_1$dat, clustNumOut_prot_fc_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
-ClustOut_vs_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-ClustOut_st_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
+x_prot_1_pvalue <- cbind(x_prot_1, pvalue_treatment=pvalue_adj_1[[1]], pvalue_time=pvalue_adj_1[[2]], pvalue_treatment_time=pvalue_adj_1[[3]])
 
 ## 2. 
 x_2_sign <- x_2[sort(unique(c(which(pvalue_adj_2[[1]] < 0.05), which(pvalue_adj_2[[2]] < 0.05), which(pvalue_adj_2[[3]] < 0.05)))), ]
 x_fc_2_sign <- x_fc_2[rownames(x_2_sign),]
-##x_DMN_2_sign <- x_DMN_2[sort(unique(c(which(pvalue_DMN_adj_2[[1]] < 0.05), which(pvalue_DMN_adj_2[[2]] < 0.05), which(pvalue_DMN_adj_2[[3]] < 0.05)))), ]
-
-## statWrapper
-statOut_x_fc_2 <- statWrapper(dat=x_fc_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T) ## ?? too few ??
-##statOut_x_DMN_2 <- statWrapper(dat=x_DMN_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
-statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
-## estimClustNum
-clustNumOut_x_fc_2 <- estimClustNum(dat=statOut_x_fc_2$dat, maxClust=20, cores=1)
-##clustNumOut_x_DMN_2 <- estimClustNum(dat=statOut_x_DMN_2$dat, maxClust=20, cores=1)
-clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=20, cores=1)
-## run clustWrapper
-ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
-#ClustOut_vs_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-#ClustOut_st_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
-ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-ClustOut_st_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
-
+x_2_pvalue <- cbind(x_2, pvalue_treatment=pvalue_adj_2[[1]], pvalue_time=pvalue_adj_2[[2]], pvalue_treatment_time=pvalue_adj_2[[3]])
 
 ## 3.
 ##x_DMN_norm_3_sign <- x_DMN_norm_3[sort(unique(c(which(pvalue_DMN_norm_adj_3[[1]] < 0.05), which(pvalue_DMN_norm_adj_3[[2]] < 0.05), which(pvalue_DMN_norm_adj_3[[3]] < 0.05)))),]
 x_norm_3_sign <- x_norm_3[sort(unique(c(which(pvalue_norm_adj_3[[1]] < 0.05), which(pvalue_norm_adj_3[[2]] < 0.05), which(pvalue_norm_adj_3[[3]] < 0.05)))),]
-## statWrapper
-statOut_x_DMN_norm_3 <- statWrapper(dat=x_DMN_norm_3_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
-statOut_x_norm_3 <- statWrapper(dat=x_norm_3_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T) ## ?? ## 
-## estimClustNum
-clustNumOut_x_DMN_norm_3 <- estimClustNum(dat=statOut_x_DMN_norm_3$dat, maxClust=20, cores=1)
-clustNumOut_x_norm_3 <- estimClustNum(dat=statOut_x_norm_3$dat, maxClust=20, cores=1)
-## runClustWrapper
-ClustOut_vs_DMN_norm_3 <- runClustWrapper(dat=statOut_x_DMN_norm_3$dat, clustNumOut_x_DMN_norm_3$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-ClustOut_st_DMN_norm_3 <- runClustWrapper(dat=statOut_x_DMN_norm_3$dat, clustNumOut_x_DMN_norm_3$numclust_st, proteins=NULL, VSClust=F, cores=1)
-ClustOut_vs_x_norm_3 <- runClustWrapper(dat=statOut_x_norm_3$dat, clustNumOut_x_norm_3$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-ClustOut_st_x_norm_3 <- runClustWrapper(dat=statOut_x_norm_3$dat, clustNumOut_x_norm_3$numclust_st, proteins=NULL, VSClust=F, cores=1)
+x_norm_3_pvalue <- cbind(x_norm_3, pvalue_treatment=pvalue_norm_adj_3[[1]], pvalue_time=pvalue_norm_adj_3[[2]], pvalue_treatment_time=pvalue_norm_adj_3[[3]])
+
+
+# ## clustering and visualization 
+# ## 1.
+# ## statWrapper
+# statOut_prot_fc_1 <- statWrapper(dat=x_prot_fc_1_sign, NumReps=5, NumCond=9, isPaired=F, isStat=T) ## only three feature
+# statOut_prot_1 <- statWrapper(dat=x_prot_1_sign, NumReps=5, NumCond=18, isPaired=F, isStat=T)
+# ## estimClustNum
+# clustNumOut_prot_fc_1 <- estimClustNum(dat=statOut_prot_fc_1$dat, maxClust=20, cores=1)
+# clustNumOut_prot_1 <- estimClustNum(dat=statOut_prot_1$dat, maxClust=20, cores=1)
+# ## runClustWrapper
+# ClustOut_vs_prot_fc_2 <- runClustWrapper(dat=statOut_prot_fc_1$dat, clustNumOut_prot_fc_1$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# ClustOut_st_prot_fc_2 <- runClustWrapper(dat=statOut_prot_fc_1$dat, clustNumOut_prot_fc_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
+# ClustOut_vs_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# ClustOut_st_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
+# ## 2.
+# ## statWrapper
+# statOut_x_fc_2 <- statWrapper(dat=x_fc_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T) ## ?? too few ??
+# ##statOut_x_DMN_2 <- statWrapper(dat=x_DMN_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
+# statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
+# ## estimClustNum
+# clustNumOut_x_fc_2 <- estimClustNum(dat=statOut_x_fc_2$dat, maxClust=20, cores=1)
+# ##clustNumOut_x_DMN_2 <- estimClustNum(dat=statOut_x_DMN_2$dat, maxClust=20, cores=1)
+# clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=20, cores=1)
+# ## run clustWrapper
+# ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
+# #ClustOut_vs_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# #ClustOut_st_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
+# ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# ClustOut_st_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
+# ## 3.
+# ## statWrapper
+# statOut_x_DMN_norm_3 <- statWrapper(dat=x_DMN_norm_3_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
+# statOut_x_norm_3 <- statWrapper(dat=x_norm_3_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T) ## ?? ## 
+# ## estimClustNum
+# clustNumOut_x_DMN_norm_3 <- estimClustNum(dat=statOut_x_DMN_norm_3$dat, maxClust=20, cores=1)
+# clustNumOut_x_norm_3 <- estimClustNum(dat=statOut_x_norm_3$dat, maxClust=20, cores=1)
+# ## runClustWrapper
+# ClustOut_vs_DMN_norm_3 <- runClustWrapper(dat=statOut_x_DMN_norm_3$dat, clustNumOut_x_DMN_norm_3$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# ClustOut_st_DMN_norm_3 <- runClustWrapper(dat=statOut_x_DMN_norm_3$dat, clustNumOut_x_DMN_norm_3$numclust_st, proteins=NULL, VSClust=F, cores=1)
+# ClustOut_vs_x_norm_3 <- runClustWrapper(dat=statOut_x_norm_3$dat, clustNumOut_x_norm_3$numclust_vs, proteins=NULL, VSClust=T, cores=1)
+# ClustOut_st_x_norm_3 <- runClustWrapper(dat=statOut_x_norm_3$dat, clustNumOut_x_norm_3$numclust_st, proteins=NULL, VSClust=F, cores=1)
 
 if (normalization == "batchEffect") {
     write.table(x_prot_1_sign, file="x_prot_1_sign_batchEffect.txt", sep="\t", dec=".")
@@ -879,6 +885,9 @@ if (normalization == "batchEffect") {
     write.table(x_norm_3_sign, file="x_norm_3_sign_batchEffect.txt", sep="\t", dec=".")
     write.table(x_prot_fc_1_sign, file="x_prot_fc_1_sign_batchEffect.txt", sep="\t", dec=".")
     write.table(x_fc_2_sign, file="x_fc_2_sign_batchEffect.txt", sep="\t", dec=".")
+    write.table(x_prot_1_pvalue, file="x_prot_1_all_with_pvalue_batchEffect.txt", sep="\t", dec=".")
+    write.table(x_2_pvalue, file="x_2_all_with_pvalue_batchEffect.txt", sep="\t", dec=".")
+    write.table(x_norm_3_pvalue, file="x_norm_3_all_with_pvalue_batchEffect.txt", sep="\t", dec=".")
     
 }
 
@@ -888,4 +897,7 @@ if (normalization == "quantile") {
     write.table(x_norm_3_sign, file="x_norm_3_sign_quantile.txt", sep="\t", dec=".")
     write.table(x_prot_fc_1_sign, file="x_prot_fc_1_sign_quantile.txt", sep="\t", dec=".")
     write.table(x_fc_2_sign, file="x_fc_2_sign_quantile.txt", sep="\t", dec=".")
+    write.table(x_prot_1_pvalue, file="x_prot_1_all_with_pvalue_quantile.txt", sep="\t", dec=".")
+    write.table(x_2_pvalue, file="x_2_all_with_pvalue_quantile.txt", sep="\t", dec=".")
+    write.table(x_norm_3_pvalue, file="x_norm_3_all_with_pvalue_quantile.txt", sep="\t", dec=".")
 }
