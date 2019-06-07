@@ -1,4 +1,5 @@
 ## helper functions for normalization.R
+## taken from https://bitbucket.org/veitveit/vsclust/src/master/
 ##library(e1071FuzzVec)
 
 statWrapper <- function(dat, NumReps, NumCond, isPaired=F, isStat) {
@@ -20,7 +21,7 @@ statWrapper <- function(dat, NumReps, NumCond, isPaired=F, isStat) {
             ttt <- SignAnal(dat, NumCond, NumReps)
         }
         
-        tdat<-rowMeans(dat[, seq(1, NumReps*NumCond, NumCond)], na.rm=T)
+        tdat <- rowMeans(dat[, seq(1, NumReps*NumCond, NumCond)], na.rm=T) ## was 1, reps*cond, cond
         
         print(Sds)
         
@@ -28,7 +29,7 @@ statWrapper <- function(dat, NumReps, NumCond, isPaired=F, isStat) {
         qvals <- ttt$plvalues
         colnames(qvals) <- paste("qvalue ", LETTERS702[2:(NumCond)], "vsA", sep="")
         for (i in 2:NumCond) {
-            tdat<-cbind(tdat, rowMeans(dat[, seq(i, NumReps*NumCond, NumCond)], na.rm=T))
+            tdat <- cbind(tdat, rowMeans(dat[, seq(i, NumReps*NumCond, NumCond)], na.rm=T))
         }
         colnames(tdat)<-paste("Mean of log ", LETTERS702[1:(NumCond)], sep="")
         dat <- cbind(tdat, Sds=Sds)
@@ -134,7 +135,7 @@ SignAnalPaired <- function(Data, NumCond, NumReps) {
     return(list(plvalues=qvalues, Sds=sqrt(lm.bayesMA$s2.post)))
 }
 
-ClustComp <- function(tData, NSs=10, NClust=NClust, Sds=Sds, cores=1) {
+ClustComp <- function(tData, NSs=100, NClust=NClust, Sds=Sds, cores=1) {
     D <- ncol(tData)
     d <- sqrt(D/2)
     dims <- dim(tData)                                                                                                           
@@ -163,7 +164,7 @@ ClustComp <- function(tData, NSs=10, NClust=NClust, Sds=Sds, cores=1) {
     
     colnames(tData)<-NULL
     PExpr <- new("ExpressionSet", expr=as.matrix(tData)) 
-    PExpr.r <- filter.NA(PExpr, thres = 0.25)
+    PExpr.r <- filter.NA(PExpr, thres=0.25)
     PExpr <- fill.NA(PExpr.r, mode = "mean")
     tmp <- filter.std(PExpr, min.std=0, visu=F)
     PExpr2 <- standardise(PExpr)
@@ -177,13 +178,13 @@ ClustComp <- function(tData, NSs=10, NClust=NClust, Sds=Sds, cores=1) {
     Bestcl2 <- cls[[which.min(lapply(cls, function(x) x$withinerror))]]
     
     # return validation indices
-    list(indices=c(min(dist(Bestcl$centers)),  cvalidate.xiebeni(Bestcl, mm),
-                   min(dist(Bestcl2$centers)), cvalidate.xiebeni(Bestcl2, mm)),
+    list(indices=c(min(dist(Bestcl$centers)),  cvalidate.xiebeni(Bestcl, mm), ## VSclust
+                   min(dist(Bestcl2$centers)), cvalidate.xiebeni(Bestcl2, mm)), ## standard Clust
          Bestcl=Bestcl, Bestcl2=Bestcl2, m=m, withinerror=Bestcl$withinerror, withinerror2=Bestcl2$withinerror) 
 }
 
 ## Wrapper for estimation of cluster number
-estimClustNum<- function(dat, maxClust=25, cores=1) {
+estimClustNum <- function(dat, maxClust=25, cores=1) {
     # print(head(rowSds(as.matrix(dat[,1:(ncol(dat)-1)]),na.rm=T)))
     ##Sds <- dat[,ncol(dat)] / rowSds(as.matrix(dat[,1:(ncol(dat)-1)]),na.rm=T)
     ClustInd <- matrix(NA, nrow=maxClust, ncol=6)
@@ -193,24 +194,13 @@ estimClustNum<- function(dat, maxClust=25, cores=1) {
         } else {
             print(paste("Running cluster number",x))
         }
-        clustout <- ClustComp(dat[,1:(ncol(dat)-1)], NClust=x, Sds=dat[,ncol(dat)], NSs=16, cores)
-        c(clustout$indices, sum(rowMaxs(clustout$Bestcl$membership)>0.5),
+        clustout <- ClustComp(dat[,1:(ncol(dat)-1)], NClust=x, Sds=dat[,ncol(dat)], NSs=100, cores)
+        c(clustout$indices, sum(rowMaxs(clustout$Bestcl$membership)>0.5), 
           sum(rowMaxs(clustout$Bestcl2$membership)>0.5))
     }, mc.cores=cores)
     for (NClust in 3:maxClust) 
         ClustInd[NClust, ] <- multiOut[[NClust-2]]
-    # for (NClust in 3:maxClust) {
-    #   print(paste("Running cluster number", NClust))
-    #   if (!is.null(getDefaultReactiveDomain())) {
-    #     incProgress(1, detail = paste("Running cluster number",NClust))
-    #   } else {
-    #     print(paste("Running cluster number",NClust))
-    #   }
-    #   clustout <- ClustComp(dat[,1:(ncol(dat)-1)],NClust=NClust,Sds=dat[,ncol(dat)],NSs=16, cores)
-    #   ClustInd[NClust,]<-c(clustout$indices,sum(rowMaxs(clustout$Bestcl$membership)>0.5),
-    #                        sum(rowMaxs(clustout$Bestcl2$membership)>0.5))
-    # }
-    
+
     dmindist <- c(which.max(ClustInd[3:(maxClust-2), 1]-ClustInd[4:(maxClust-1), 1])+2,
                   which.max(ClustInd[3:(maxClust-2), 3]-ClustInd[4:(maxClust-1), 3])+2)
     dxiebeni <- c(which.min(ClustInd[3:(maxClust-1), 2])+2,
@@ -241,7 +231,9 @@ estimClustNum<- function(dat, maxClust=25, cores=1) {
     p <- recordPlot()
     
     # Output
-    Out <- list(ClustdInd=ClustInd, p=p, numclust_vs=dmindist[1], numclust_st=dmindist[2])
+    Out <- list(ClustdInd=ClustInd, p=p, 
+                numclust_vs_dmindist=dmindist[1], numclust_st_dmindist=dmindist[2], 
+                numclust_vs_dxiebeni=dxiebeni[1], numclust_st_dxiebeni=dxiebeni[2])
     Out
 }
 
@@ -266,20 +258,21 @@ SwitchOrder <- function(Bestcl, NClust) {
 runClustWrapper <- function(dat, NClust, proteins=NULL, VSClust=T, cores) {
     # dat <- dat[rowSums(is.na(dat))==0,]
     PExpr <- new("ExpressionSet", expr=as.matrix(dat[, 1:(ncol(dat)-1)])) ## was ncol(dat)-1
-    PExpr.r <- filter.NA(PExpr, thres = 0.25)
+    PExpr.r <- filter.NA(PExpr, thres=0.25)
     PExpr <- fill.NA(PExpr.r, mode = "mean")
     tmp <- filter.std(PExpr, min.std=0, visu=F)
     PExpr <- standardise(PExpr)
     
     
-    clustout <- ClustComp(exprs(PExpr), NClust=NClust, Sds=dat[, ncol(dat)], NSs=16, cores)
+    clustout <- ClustComp(exprs(PExpr), NClust=NClust, Sds=dat[, ncol(dat)], NSs=100, cores)
     if (VSClust) {
         Bestcl <- clustout$Bestcl
     } else {
         Bestcl <- clustout$Bestcl2
     }
     Bestcl <- SwitchOrder(Bestcl, NClust)
-    
+    ##########
+
     # sorting for membership values (globally)
     Bestcl$cluster <- Bestcl$cluster[order(rowMaxs(Bestcl$membership, na.rm=T))]
     Bestcl$membership <- Bestcl$membership[order(rowMaxs(Bestcl$membership, na.rm=T)), ]
@@ -334,3 +327,4 @@ cvalidate.xiebeni <- function(clres,m) {
     xiebeni <- error/(xrows * minimum)                                       
     return(xiebeni)                                                          
 }
+

@@ -42,9 +42,6 @@ hist(na_outlier)
 x_prot <- x_prot[-which(rownames(x_prot) %in% outlier),]
 
 ## divide by 75% quantile and 50% quantile
-
-
-
 ind_batch1 <- grep(colnames(x_prot), pattern="0_1|C_05_1|C_1_1|C_2_1|C_4_1|C_8_1|C_16_1|C_32_1|C_64_1|R_05_1|R_1_1|R_2_1|R_4_1|R_8_1|R_16_1|R_32_1|R_64_1")
 ind_batch2 <- grep(colnames(x_prot), pattern="0_2|C_05_2|C_1_2|C_2_2|C_4_2|C_8_2|C_16_2|C_32_2|C_64_2|R_05_2|R_1_2|R_2_2|R_4_2|R_8_2|R_16_2|R_32_2|R_64_2")
 ind_batch3 <- grep(colnames(x_prot), pattern="0_3|C_05_3|C_1_3|C_2_3|C_4_3|C_8_3|C_16_3|C_32_3|C_64_3|R_05_3|R_1_3|R_2_3|R_4_3|R_8_3|R_16_3|R_32_3|R_64_3")
@@ -62,8 +59,6 @@ batch_prot[grep(colnames(x_prot), pattern=glob2rx("Intensity.0_4*"))] <- "yellow
 batch_prot[grep(colnames(x_prot), pattern=glob2rx("Intensity.?_*_4*"))] <- "yellow"
 batch_prot[grep(colnames(x_prot), pattern=glob2rx("Intensity.0_5*"))] <- "orange"
 batch_prot[grep(colnames(x_prot), pattern=glob2rx("Intensity.?_*_5*"))] <- "orange"
-
-
 
 
 ## only use replicates 1-3 for phospoproteomics
@@ -89,7 +84,7 @@ batch[grep(colnames(x), pattern=glob2rx("Intensity.0_3*"))] <- "green"
 batch[grep(colnames(x), pattern=glob2rx("Intensity.?_*_3*"))] <- "green"
 
 
-normalization <- "quantile" ## quantile
+normalization <- "batchEffect" ## quantile
 
 if (normalization == "batchEffect") {
 ## removeBatchEffect
@@ -107,7 +102,7 @@ if (normalization == "quantile") {
 
 
 
-par(mfrow=c(5,5))
+par(mfrow=c(4,4))
 for(i in 1:ncol(x)) hist(log2(x[,i]))
 for(i in 1:ncol(x_prot)) hist(log2(x_prot[,i]))
 
@@ -342,7 +337,7 @@ x_prot_old <- x_prot
 x75 <- x <- log2(x) ## +1: do this since it can be that values are 0
 x_prot50 <- x_prot <- log2(x_prot)
 
-par(mfrow=c(5,5))
+par(mfrow=c(4,4))
 for(i in 1:ncol(x75)) hist(x75[,i])
 for(i in 1:ncol(x_prot50)) hist(x_prot50[,i])
 
@@ -354,9 +349,6 @@ x_prot50 <- cbind(x_prot50, "Intensity.R_2_4"=apply(x_prot50[, c("Intensity.R_2_
 x_prot50 <- cbind(x_prot50, "Intensity.R_1_4"=apply(x_prot50[, c("Intensity.R_1_1", "Intensity.R_1_2", "Intensity.R_1_3", "Intensity.R_1_5")], 1, mean, na.rm=TRUE))
 x_prot50 <- cbind(x_prot50, "Intensity.R_4_1"=apply(x_prot50[, c("Intensity.R_4_2", "Intensity.R_4_3", "Intensity.R_4_5", "Intensity.R_4_5")], 1, mean, na.rm=TRUE))
 x_prot50 <- x_prot50[, sort(colnames(x_prot50))]
-
-
-
 
 ## impute missing values (use min per row)
 x75_imp <- impute_min(x75)
@@ -608,6 +600,7 @@ fc_all_b1_prot <- cbind(fc_0_b1_prot, fc_05_b1_prot, fc_1_b1_prot, fc_2_b1_prot,
 # fc_all_b3 <- cbind(fc_0_b3, fc_05_b3, fc_1_b3, fc_2_b3, fc_4_b3, fc_8_b3, fc_16_b3, fc_32_b3, fc_64_b3)
 
 ##### visualisation ####
+library(pheatmap)
 fc_all_a1_NAr <- fc_all_a1[apply(fc_all_a1, 1, function(x) !all(x == 1)),]
 fc_all_b1_NAr <- fc_all_b1[apply(fc_all_b1, 1, function(x) !all(x == 1)),]
 pheatmap(fc_all_a1_NAr, cluster_cols=FALSE, cluster_rows=TRUE, scale="row", show_rownames=F)
@@ -671,6 +664,10 @@ time <- c(rep(c(rep(0, 3), rep(0.5, 3), rep(1, 3), rep(2,3), rep(4, 3), rep(8, 3
 time_fc <- c(rep(0, 3), rep(0.5, 3), rep(1, 3), rep(2, 3), rep(4, 3), rep(8, 3), rep(16, 3), rep(32, 3), rep(64, 3))
 time_prot <- c(rep(c(rep(0, 5), rep(0.5, 5), rep(1, 5), rep(2, 5), rep(4, 5), rep(8, 5), rep(16, 5), rep(32, 5), rep(64, 5)), 2))
 time_fc_prot <- c(rep(0, 5), rep(0.5, 5), rep(1, 5), rep(2, 5), rep(4, 5), rep(8, 5), rep(16, 5), rep(32, 5), rep(64, 5))
+subject <- as.factor(c(rep(1:3, 9), rep(4:6, 9)))
+subject_fc <- as.factor(rep(1:3, 9))
+subject_prot <- as.factor(c(rep(1:5, 9), rep(6:10, 9)))
+subject_prot_fc <- as.factor(rep(1:5, 9))
 
 ## overlap protein IDs of x_DMN (75% quantile + log2 + linear modell) and x_prot50 (50% quantile + log2)
 ## overlap protein IDs of x75 (75% quantile + log2) and x_prot50 (50% quantile + log2)
@@ -684,8 +681,6 @@ time_fc_prot <- c(rep(0, 5), rep(0.5, 5), rep(1, 5), rep(2, 5), rep(4, 5), rep(8
 ## whole proteome (not only !overlap): significant
 ## whole ps (not only !overlap): signicant
 
-## check if rownames of x_DMN_sort and x_sort are identical
-if (!all(rownames(x_DMN_sort) == rownames(x_sort))) stop()
 id_phsi <- rownames(x_sort)
 id_phsi <- unlist(lapply(strsplit(id_phsi, split="_"), "[", 1))
 ##id_phsi_DMN <- rownames(x_DMN_sort)
@@ -731,30 +726,33 @@ x_norm_3 <- ifelse(x_norm_3 == -Inf, NA, x_norm_3)
 
 
 ## calculate anova per feature and return error messages if not possible
-aov_l <- function(x=x_DMN_sort, treatment=treatment, time=time) {
+aov_l <- function(x=x_DMN_sort, treatment=treatment, time=time, subject=subject) {
+    treatment <- as.factor(treatment)
+    time <- as.factor(time)
+    subject <- as.factor(subject)
     aov_res <- lapply(seq_len(nrow(x)), function(y) {
-        df <- data.frame(value=as.numeric(x[y,]), treatment=treatment, time=time)
+        df <- data.frame(value=as.numeric(x[y,]), treatment=treatment, time=time, subject=subject)
         ## balanced design anova for treatment and time and interaction
-        aov_res <- tryCatch(aov(value ~ treatment * time, data=df), error=function(i) print(y)) 
+        aov_res <- tryCatch(aov(df$value ~ (df$treatment*df$time) + Error(df$subject/df$time)), error=function(i) print(y)) ## error term to adjust for time-series
         return(aov_res)
     })
     return(aov_res)
 }
 
-aov_fc_l <- function(fc_x=fc_DMN, time_fc=time_fc) {
+aov_fc_l <- function(fc_x=fc_DMN, time_fc=time_fc, subject_fc=subject_fc) {
     aov_res <- lapply(seq_len(nrow(fc_x)), function(y) {
-        df <- data.frame(value=as.numeric(fc_x[y,]), time=time_fc)
+        df <- data.frame(value=as.numeric(fc_x[y,]), time=time_fc, subject=subject_fc)
         ## balanced design anova for treatment and time and interaction
-        aov_res <- tryCatch(aov(value ~ time, data=df), error=function(i) print(y))
+        aov_res <- tryCatch(aov(df$value ~ (df$time) + Error(df$subject/df$time)), error=function(i) print(y))
         return(aov_res)
     })
     return(aov_res)
 }
 
 get_pvalue <- function(aov_l) {
-    p_treatment <- lapply(seq_along(aov_l), function(x) try(summary(aov_l[[x]])[[1]]["Pr(>F)"][1, ]))
-    p_time <- lapply(seq_along(aov_l), function(x) try(summary(aov_l[[x]])[[1]]["Pr(>F)"][2, ]))
-    p_treatment_time <- lapply(seq_along(aov_l), function(x) try(summary(aov_l[[x]])[[1]]["Pr(>F)"][3, ]))
+    p_treatment <- lapply(seq_along(aov_l), function(x) try(unlist(summary(aov_l[[x]]))[["Error: df$subject.Pr(>F)1"]] )) ## summary(aov_l[[x]])[[1]]["Pr(>F)"][1, ]))
+    p_time <- lapply(seq_along(aov_l), function(x) try(unlist(summary(aov_l[[x]]))[["Error: df$subject:df$time.Pr(>F)1"]] )) ## summary(aov_l[[x]])[[1]]["Pr(>F)"][2, ]))
+    p_treatment_time <- lapply(seq_along(aov_l), function(x) try(unlist(summary(aov_l[[x]]))[["Error: df$subject:df$time.Pr(>F)2"]] ))##summary(aov_l[[x]])[[1]]["Pr(>F)"][3, ]))
     ## unlist
     p_treatment <- as.numeric(unlist(p_treatment))
     p_time <- as.numeric(unlist(p_time))
@@ -765,7 +763,7 @@ get_pvalue <- function(aov_l) {
 }
 
 get_pvalue_fc <- function(aov_fc_l) {
-    p_time_fc <- lapply(seq_len(length(aov_fc_l)), function(x) try(summary(aov_fc_l[[x]])[[1]]["Pr(>F)"][1, ]))
+    p_time_fc <- lapply(seq_len(length(aov_fc_l)), function(x) try(unlist(summary(aov_fc_l[[x]]))[["Error: df$subject:df$time.Pr(>F)1"]]))## summary(aov_fc_l[[x]])[[1]]["Pr(>F)"][1, ]))
     ## unlist
     p_time_fc <- as.numeric(unlist(p_time_fc))
     
@@ -787,8 +785,8 @@ adj_pvalue_fc <- function(p_value_fc) {
 
 ## get p-values for treatment, time and interaction
 ## 1. 
-aov_1 <- aov_l(x_prot_1, treatment_prot, time_prot)
-aov_fc_1 <- aov_fc_l(x_prot_fc_1, time_fc_prot)
+aov_1 <- aov_l(x_prot_1, treatment_prot, time_prot, subject_prot)
+aov_fc_1 <- aov_fc_l(x_prot_fc_1, time_fc_prot, subject_prot_fc)
 pvalue_1 <- get_pvalue(aov_1)
 pvalue_adj_1 <- adj_pvalue(pvalue_1)
 pvalue_fc_1 <- get_pvalue_fc(aov_fc_1)
@@ -796,21 +794,17 @@ pvalue_fc_adj_1 <- adj_pvalue_fc(pvalue_fc_1)
 
 ## 2. 
 #aov_DMN_2 <- aov_l(x_DMN_2, treatment, time)
-aov_2 <- aov_l(x_2, treatment, time)
-aov_fc_2 <- aov_fc_l(x_fc_2, time_fc)
-#pvalue_DMN_2 <- get_pvalue(aov_DMN_2)
+aov_2 <- aov_l(x_2, treatment, time, subject)
+aov_fc_2 <- aov_fc_l(x_fc_2, time_fc, subject_fc)
 pvalue_2 <- get_pvalue(aov_2)
 pvalue_fc_2 <- get_pvalue_fc(aov_fc_2)
-#pvalue_DMN_adj_2 <- adj_pvalue(pvalue_DMN_2)
 pvalue_adj_2 <- adj_pvalue(pvalue_2)
 pvalue_fc_adj_2 <- adj_pvalue_fc(pvalue_fc_2)
 
+
 ## 3.
-#aov_DMN_norm_3 <- aov_l(x_DMN_norm_3, treatment, time)
-aov_norm_3 <- aov_l(x_norm_3, treatment, time)
-#pvalue_DMN_norm_3 <- get_pvalue(aov_DMN_norm_3)
+aov_norm_3 <- aov_l(x_norm_3, treatment, time, subject)
 pvalue_norm_3 <- get_pvalue(aov_norm_3)
-#pvalue_DMN_norm_adj_3 <- adj_pvalue(pvalue_DMN_norm_3)
 pvalue_norm_adj_3 <- adj_pvalue(pvalue_norm_3)
 
 ## fuzzy clustering and VS clustering
@@ -837,6 +831,11 @@ x_norm_3_sign <- x_norm_3[sort(unique(c(which(pvalue_norm_adj_3[[1]] < 0.05), wh
 x_norm_3_pvalue <- cbind(x_norm_3, pvalue_treatment=pvalue_norm_adj_3[[1]], pvalue_time=pvalue_norm_adj_3[[2]], pvalue_treatment_time=pvalue_norm_adj_3[[3]])
 
 
+## use x_2 batch effect to cluster
+## !! cluster fc ## 
+
+## !! cluster C and R ## 
+
 # ## clustering and visualization 
 # ## 1.
 # ## statWrapper
@@ -852,16 +851,34 @@ x_norm_3_pvalue <- cbind(x_norm_3, pvalue_treatment=pvalue_norm_adj_3[[1]], pval
 # ClustOut_st_prot_1 <- runClustWrapper(dat=statOut_prot_1$dat, clustNumOut_prot_1$numclust_st, proteins=NULL, VSClust=F, cores=1)
 # ## 2.
 # ## statWrapper
-# statOut_x_fc_2 <- statWrapper(dat=x_fc_2_sign, NumReps=3, NumCond=9, isPaired=F, isStat=T) ## ?? too few ??
+x_fc_2_sign <- x_fc_2_sign[apply(x_fc_2_sign, 1, sd) > 1e-15, ] ## remove features with sd <= 1e-15 (low variance features)
+x_2_sign <- x_2_sign[apply(x_2_sign, 1, sd) > 1e-15, ] ## remove features with sd <= 1e-15 (low variance features)
+
+## x_fc_2_sign has to be in the format rep1_t0, rep1_t1, ... rep2_t0, rep2_t1, ...
+## do not use Intensity.0_1, Intensity.0_2, Intensity.0_3 since all 1
+x_fc_2_sign <- x_fc_2_sign[, c("Intensity.R_05_1", "Intensity.R_1_1", "Intensity.R_2_1", "Intensity.R_4_1", "Intensity.R_8_1", "Intensity.R_16_1", "Intensity.R_32_1", "Intensity.R_64_1",
+    "Intensity.R_05_2", "Intensity.R_1_2", "Intensity.R_2_2", "Intensity.R_4_2", "Intensity.R_8_2", "Intensity.R_16_2", "Intensity.R_32_2", "Intensity.R_64_2",
+    "Intensity.R_05_3", "Intensity.R_1_3", "Intensity.R_2_3", "Intensity.R_4_3", "Intensity.R_8_3", "Intensity.R_16_3", "Intensity.R_32_3", "Intensity.R_64_3")]
+x_2_sign <- x_2_sign[, c("Intensity.0_1", "Intensity.C_05_1", "Intensity.C_1_1", "Intensity.C_2_1", "Intensity.C_4_1", "Intensity.C_8_1", "Intensity.C_16_1", "Intensity.C_32_1", "Intensity.C_64_1", "Intensity.R_05_1", "Intensity.R_1_1", "Intensity.R_2_1", "Intensity.R_4_1", "Intensity.R_8_1", "Intensity.R_16_1", "Intensity.R_32_1", "Intensity.R_64_1",
+    "Intensity.0_2", "Intensity.C_05_2", "Intensity.C_1_2", "Intensity.C_2_2", "Intensity.C_4_2", "Intensity.C_8_2", "Intensity.C_16_2", "Intensity.C_32_2", "Intensity.C_64_2", "Intensity.R_05_2", "Intensity.R_1_2", "Intensity.R_2_2", "Intensity.R_4_2", "Intensity.R_8_2", "Intensity.R_16_2", "Intensity.R_32_2", "Intensity.R_64_2",
+    "Intensity.0_3", "Intensity.C_05_3", "Intensity.C_1_3", "Intensity.C_2_3", "Intensity.C_4_3", "Intensity.C_8_3", "Intensity.C_16_3", "Intensity.C_32_3", "Intensity.C_64_3", "Intensity.R_05_3", "Intensity.R_1_3", "Intensity.R_2_3", "Intensity.R_4_3", "Intensity.R_8_3", "Intensity.R_16_3", "Intensity.R_32_3", "Intensity.R_64_3")]
+
+
+statOut_x_fc_2 <- statWrapper(dat=x_fc_2_sign, NumReps=3, NumCond=8, isPaired=F, isStat=T)
+statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=17, isPaired=F, isStat=T) 
 # ##statOut_x_DMN_2 <- statWrapper(dat=x_DMN_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
-# statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=18, isPaired=F, isStat=T)
 # ## estimClustNum
-# clustNumOut_x_fc_2 <- estimClustNum(dat=statOut_x_fc_2$dat, maxClust=20, cores=1)
+clustNumOut_x_fc_2 <- estimClustNum(dat=statOut_x_fc_2$dat, maxClust=100, cores=1)
+clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=100, cores=1)
 # ##clustNumOut_x_DMN_2 <- estimClustNum(dat=statOut_x_DMN_2$dat, maxClust=20, cores=1)
 # clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=20, cores=1)
 # ## run clustWrapper
-# ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
-# ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
+ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs_dmindist, proteins=NULL, VSClust=T, cores=1) ## numclust_vs_dxiebeni
+ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_st_dmindist, proteins=NULL, VSClust=F, cores=1) ## numclust_st_dxiebeni
+ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs_dmindist, proteins=NULL, VSClust=T, cores=1) ## numclust_vs_dxiebeni
+ClustOut_st_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_st_dmindist, proteins=NULL, VSClust=F, cores=1) ## numclust_st_dxiebeni
+save(x_fc_2_sign, statOut_x_fc_2, clustNumOut_x_fc_2, ClustOut_vs_x_fc_2, ClustOut_st_x_fc_2, file="clustering_fc_vs_st_mindist.RData")
+save(x_2_sign, statOut_x_2, clustNumOut_x_2, ClustOut_vs_x_2, ClustOut_st_x_2, file="clustering_vs_st_mindist.RData")
 # #ClustOut_vs_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
 # #ClustOut_st_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
 # ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
