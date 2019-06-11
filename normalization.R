@@ -870,15 +870,25 @@ statOut_x_2 <- statWrapper(dat=x_2_sign, NumReps=3, NumCond=17, isPaired=F, isSt
 # ## estimClustNum
 clustNumOut_x_fc_2 <- estimClustNum(dat=statOut_x_fc_2$dat, maxClust=100, cores=1)
 clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=100, cores=1)
-# ##clustNumOut_x_DMN_2 <- estimClustNum(dat=statOut_x_DMN_2$dat, maxClust=20, cores=1)
-# clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=20, cores=1)
-# ## run clustWrapper
-ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs_dmindist, proteins=NULL, VSClust=T, cores=1) ## numclust_vs_dxiebeni
-ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_st_dmindist, proteins=NULL, VSClust=F, cores=1) ## numclust_st_dxiebeni
-ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs_dmindist, proteins=NULL, VSClust=T, cores=1) ## numclust_vs_dxiebeni
-ClustOut_st_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_st_dmindist, proteins=NULL, VSClust=F, cores=1) ## numclust_st_dxiebeni
+
 save(x_fc_2_sign, statOut_x_fc_2, clustNumOut_x_fc_2, ClustOut_vs_x_fc_2, ClustOut_st_x_fc_2, file="clustering_fc_vs_st_mindist.RData")
 save(x_2_sign, statOut_x_2, clustNumOut_x_2, ClustOut_vs_x_2, ClustOut_st_x_2, file="clustering_vs_st_mindist.RData")
+
+load("clustering_fc_vs_st_mindist.RData")
+load("clustering_vs_st_mindist.RData")
+# ##clustNumOut_x_DMN_2 <- estimClustNum(dat=statOut_x_DMN_2$dat, maxClust=20, cores=1)
+# clustNumOut_x_2 <- estimClustNum(dat=statOut_x_2$dat, maxClust=20, cores=1)
+## run clustWrapper
+
+## very high k size for VS clustering --> do not use VS clustering, use k=6 for both x and x_fc (standard fuzzy clustering)
+#ClustOut_vs_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, clustNumOut_x_fc_2$numclust_vs_dmindist, proteins=NULL, VSClust=T, cores=1) ## numclust_vs_dxiebeni
+ClustOut_st_x_fc_2 <- runClustWrapper(dat=statOut_x_fc_2$dat, 6, proteins=NULL, VSClust=F, cores=1) ## clustNumOut_x_fc_2$numclust_st_dmindist,
+#ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs_dmindist, proteins=NULL, VSClust=T, cores=1) ## numclust_vs_dxiebeni
+ClustOut_st_x_2 <- runClustWrapper(dat=statOut_x_2$dat, 6, proteins=NULL, VSClust=F, cores=1) ## numclust_st_dxiebeni
+
+##
+
+
 # #ClustOut_vs_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
 # #ClustOut_st_x_DMN_2 <- runClustWrapper(dat=statOut_x_DMN_2$dat, clustNumOut_x_DMN_2$numclust_st, proteins=NULL, VSClust=F, cores=1)
 # ClustOut_vs_x_2 <- runClustWrapper(dat=statOut_x_2$dat, clustNumOut_x_2$numclust_vs, proteins=NULL, VSClust=T, cores=1)
