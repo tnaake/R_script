@@ -1,11 +1,12 @@
-## https://stackoverflow.com/questions/22426295/bipartite-graph-matching-to-match-two-sets
+## load required libraries
 library(igraph)
+library(MSnbase)
 
 ## two example spectras
-spectrum1 <- matrix(c(c(150, 201, 202.001, 400, 400.00005, 400.0001),
+spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001),
                       c(1, 1, 1, 1, 1.5, 1.2)), ncol=6, nrow=2, byrow=TRUE)
 
-spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 398.99998, 398.999999, 400.00005, 402.00006),
+spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 399.99998, 399.999999, 400.00005, 400.00006),
                       c(1, 1, 1, 1.5, 2, 2.5, 2.4)), ncol=7, nrow=2, byrow=TRUE)
 
 
@@ -49,7 +50,7 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
 
 ## function to match Spectrum2 objects using bipartite networks and combinations
 ## to match peaks --> objective function is highest similarity between Spectrum2
-matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct) {
+matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...) {
     
     if (!is.matrix(spectrum1)) stop("spectrum1 is not a matrix")
     if (!is.matrix(spectrum2)) stop("spectrum2 is not a matrix")
@@ -237,15 +238,30 @@ matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduc
         S2_1 <- new("Spectrum2", precursorMz=max(mz1, na.rm=TRUE), mz=mz1, intensity=int1)
         S2_2 <- new("Spectrum2", precursorMz=max(mz2, na.rm=TRUE), mz=mz2, intensity=int2)
         ## calculate similarity
-        compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE)
+        compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)
     })
 
     return(max(sim))
 
 }
 
-matchSpectrum2(spectrum1=spectrum1, spectrum2=spectrum2)
-matchSpectrum2(spectrum1=as.matrix(spectrum1[,-c(2:6)]), spectrum2=spectrum2)
+
+matchSpectrum2(spectrum1=as.matrix(spectrum1[,-c(2:6)]), spectrum2=spectrum2, n=1, m=0.2)
 
 sp1 <- as.matrix(spectrum1[, -c(2:6)])
 sp2 <- spectrum2
+
+
+
+## unit tests via test_that
+## expect_equal
+## expect_equal
+library("testthat")
+
+matchSpectrum2(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)])
+
+test_that("", {
+  expect_equal(matchSpectrum2(spectrum1=spectrum1, spectrum2=spectrum1), 1)
+  expect_equal(matchSpectrum2(spectrum1=spectrum1, spectrum2=spectrum2), 0.9957219)
+  expect_equal(matchSpectrum2(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)]), 0)
+})
