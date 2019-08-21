@@ -2,31 +2,107 @@
 library(igraph)
 library(MSnbase)
 
-## two example spectras
-spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001),
-                      c(1, 1, 1, 1, 1.5, 1.2)), ncol=6, nrow=2, byrow=TRUE)
-
-spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 399.99998, 399.999999, 400.00005, 400.00006),
-                      c(1, 1, 1, 1.5, 2, 2.5, 2.4)), ncol=7, nrow=2, byrow=TRUE)
-
-
-
-## helper function: shift columns of matrix by n and set to def
-shift_matrix <- function(mat, x, n, def=NA){
-    if(n==0){ res <- mat}
-    if(n<0){
+################################### functions ##################################
+#' @name shiftMatrix
+#' @title Shift columns of a matrix by n and set added columns to def
+#' @description \code{shiftMatrix} shifts columns of a matrix by \code{n} and 
+#' sets the added columns to \code{def}.
+#' @usage shiftMatrix(mat, x, n, def=NA)
+#' @param mat matrix
+#' @param x
+#' @param n numeric
+#' @param def character/numeric, replacement value for added columns
+#' @details Helper function for \code{matchSpectra}
+#' @return matrix with all combinations of shifted rows
+#' @author Thomas Naake \email{thomasnaake@@googlemail.com}
+#' @examples 
+#' shiftMatrix(mat, x, n, def=NA)
+shiftMatrix <- function(mat, x, n, def=NA){
+    if (n==0) { res <- mat }
+    if (n<0) {
         n <- abs(n)
         res <- mat[,x[seq_len(length(x)-n)+n] ]##, rep(def, n))
         res <- cbind(res, matrix(NA, nrow=nrow(mat), ncol=n))
-    }else{
-        ##res <- c(rep(def, n), 
+    } else {
         res <- mat[,x[seq_len(length(x)-n)]]
         res <- cbind(matrix(NA, nrow=nrow(mat), ncol=n), res)
     }
     return(res)
 }
 
-## function to calculate dotproduct
+## taken from MetCirc
+#' @name compare_Spectra
+#' @title Create similarity matrix from MSnbase::Spectra object
+#' @description compare_Spectra creates a similarity matrix of all 
+#' Spectrum objects in \code{object}
+#' @usage compare_Spectra(object, fun, ...)
+#' @param object \code{Spectra}
+#' @param fun function or character, see ?MSnbase::compareSpectra for further
+#' information
+#' @param ... further arguments passed to compareSpectra
+#' @details Function inspired by compareSpectra.OnDiskMSnExp. Possibly 
+#' transfer to MSnbase.
+#' @return matrix with pair-wise similarities
+#' @author Thomas Naake (inspired by compareSpectra.OnDiskMSnExp)
+#' @examples 
+#' data("spectra", package="MetCirc")
+#' compare_Spectra(spectra_tissue[1:10], fun="dotproduct")
+#' @export
+compare_Spectra <- function(object, fun, ...) {
+  
+  nm <- names(object)
+  cb <- combn(nm, 2)
+  cb <- apply(cb, 2, function(x) compareSpectra(object[[x[1]]], object[[x[[2]]]], fun=fun, ...)) ## "dotproduct"
+  
+  m <- matrix(NA, length(object), length(object),
+              dimnames=list(nm, nm))
+  ## fill lower triangle of the matrix
+  m[lower.tri(m)] <- cb
+  ## copy to upper triangle
+  for (i in 1:nrow(m)) {
+    m[i, ] <- m[, i]
+  }
+  
+  diag(m) <- 1
+  
+  return(m)
+}
+
+
+## taken from MetCirc
+#' @name normalizeddotproduct
+#' @title Calculate the normalized dot product
+#' @description Calculate the normalized dot product (NDP)
+#' @usage normalizeddotproduct(x, y, m=0.5, n=2, ...)
+#' @param x \code{Spectrum2} object from \code{MSnbase} containing
+#' intensity and m/z values, first MS/MS spectrum
+#' @param y \code{Spectrum2} object from \code{MSnbase} containing 
+#' intensity and m/z values, second MS/MS spectrum
+#' @param m \code{numeric}, exponent to calculate peak intensity-based weights
+#' @param n \code{numeric}, exponent to calculate m/z-based weights
+#' @param ... further arguments passed to MSnbase:::bin_Spectra
+#' @details The normalized dot product is calculated according to the 
+#' following formula: 
+#'  \deqn{NDP = \frac{\sum(W_{S1, i} \cdot W_{S2, i}) ^ 2}{ \sum(W_{S1, i} ^ 2) * \sum(W_{S2, i} ^ 2) }}{\sum(W_{S1, i} \cdot W_{S2, i}) ^ 2 \sum(W_{S1, i} ^ 2) * \sum(W_{S2, i} ^ 2)},
+#'  with \eqn{W = [ peak intensity] ^{m} \cdot [m/z]^n}. For further information 
+#'  see Li et al. (2015): Navigating natural variation in herbivory-induced
+#'  secondary metabolism in coyote tobacco populations using MS/MS structural 
+#'  analysis. PNAS, E4147--E4155. \code{normalizeddotproduct} returns a numeric 
+#'  value ranging between 0 and 1, where 0 
+#' indicates no similarity between the two MS/MS features, while 1 indicates 
+#' that the MS/MS features are identical. Arguments can be passed to 
+#' the function \code{MSnbase:::bin_Spectra}, e.g. to set the width of bins
+#' (binSize). 
+#' Prior to calculating \deqn{W_{S1}} or \deqn{W_{S2}}, all intensity values 
+#' are divided by the maximum intensity value. 
+#' @return normalizeddotproduct returns a numeric similarity coefficient between 0 and 1
+#' @author Thomas Naake, \email{thomasnaake@@googlemail.com}
+#' @examples 
+#' data("spectra", package="MetCirc")
+#' x <- spectra_tissue[[1]]
+#' y <- spectra_tissue[[2]]
+#' normalizeddotproduct(x, y, m=0.5, n=2, binSize=0.01) 
+#' @export
 normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
     ## normalize to % intensity
     x@intensity <- x@intensity / max(x@intensity)*100
@@ -48,9 +124,35 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
     sum( ws1*ws2, na.rm=TRUE) ^ 2 / ( sum( ws1^2, na.rm=TRUE) * sum( ws2^2, na.rm=TRUE ) )
 }
 
-## function to match Spectrum2 objects using bipartite networks and combinations
+#' @name matchSpectra
+#' @title Match two spectra using bipartite networks and combinatorics
+#' @description \code{matchSpectra} takes two objects, \code{spectrum1} and 
+#' \code{spectrum2} as input that contain spectral information. The matching 
+#' is a multi-step procedure: 
+#' 1) filtering based on \code{ppm},
+#' 2) retain order of matches between features of \code{spectrum1} and 
+#' \code{spectrum2} (remove crossing edges that violate the order of matching
+#' m/z),
+#' 3) calculate all combinations of the remaining possibilities.  
+#' @usage matchSpectra(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...)
+#' @param spectrum1 matrix, the first row contains m/z value and the second 
+#' row contains the corresponding intensity values
+#' @param  spectrum2 matrix, the first row contains m/z value and the second 
+#' row contains the corresponding intensity values
+#' @param ppm numeric, tolerance parameter in ppm to match corresponding peaks
+#' @param fun function
+#' @param ... additional parameters passed to compare_Spectra
+#' @details Objective function is highest similarites between the two 
+#' spectral objects, i.e. \code{fun} is calculated over all combinations and 
+#' the similarity of the combination that yields the highest similarity is 
+#' returned. 
+#' @return numeric, highest similarity score from all possible combinations
+#' @author Thomas Naake \email{thomasnaake@@googlemail.com}
+#' @examples 
+#' matchSpectra(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...)
+## function to match spectrum objects using bipartite networks and combinations
 ## to match peaks --> objective function is highest similarity between Spectrum2
-matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...) {
+matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...) {
     
     if (!is.matrix(spectrum1)) stop("spectrum1 is not a matrix")
     if (!is.matrix(spectrum2)) stop("spectrum2 is not a matrix")
@@ -87,8 +189,9 @@ matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduc
     w[colnames(spectrum1), colnames(spectrum1)] <- 0
     w[colnames(spectrum2), colnames(spectrum2)] <- 0
 
-    ## match order and remove 
-    comp <- components(graph_from_adjacency_matrix(w))
+    ## obtain network components from w
+    net <- graph_from_adjacency_matrix(w, weighted=FALSE, mode="undirected")
+    comp <- components(net)
     
     ## 3) get all possible combinations within one component
     ## res will contain all combinations within one component
@@ -158,8 +261,8 @@ matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduc
     
             ## create shifted matrices, do not use last element since it contains
             ## only NAs 
-            shift_right <- lapply(seqs[-length(seqs)], function(x) shift_matrix(res_i, seqs, x/2))
-            shift_left <- lapply(seqs[-length(seqs)], function(x) shift_matrix(res_i, seqs, -x/2))
+            shift_right <- lapply(seqs[-length(seqs)], function(x) shiftMatrix(res_i, seqs, x/2))
+            shift_left <- lapply(seqs[-length(seqs)], function(x) shiftMatrix(res_i, seqs, -x/2))
     
             ## write to matrix
             mat_shift_left <- lapply(shift_left, function(x) {
@@ -181,7 +284,6 @@ matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduc
             res[[i]] <- res_i
         }
     }
-    
 
     ## create combinations between rows 
     res_paste <- lapply(res, function(x) apply(x, 1, paste, collapse=" & "))
@@ -245,8 +347,16 @@ matchSpectrum2 <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduc
 
 }
 
+################################### workflow# ##################################
+## two example spectras
+spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001),
+                      c(1, 1, 1, 1, 1.5, 1.2)), ncol=6, nrow=2, byrow=TRUE)
 
-matchSpectrum2(spectrum1=as.matrix(spectrum1[,-c(2:6)]), spectrum2=spectrum2, n=1, m=0.2)
+spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 399.99998, 399.999999, 400.00005, 400.00006),
+                      c(1, 1, 1, 1.5, 2, 2.5, 2.4)), ncol=7, nrow=2, byrow=TRUE)
+
+
+matchSpectra(spectrum1=as.matrix(spectrum1[,-c(2:6)]), spectrum2=spectrum2, n=1, m=0.2)
 
 sp1 <- as.matrix(spectrum1[, -c(2:6)])
 sp2 <- spectrum2
@@ -258,10 +368,10 @@ sp2 <- spectrum2
 ## expect_equal
 library("testthat")
 
-matchSpectrum2(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)])
+matchSpectra(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)])
 
 test_that("", {
-  expect_equal(matchSpectrum2(spectrum1=spectrum1, spectrum2=spectrum1), 1)
-  expect_equal(matchSpectrum2(spectrum1=spectrum1, spectrum2=spectrum2), 0.9957219)
-  expect_equal(matchSpectrum2(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)]), 0)
+  expect_equal(matchSpectra(spectrum1=spectrum1, spectrum2=spectrum1), 1)
+  expect_equal(matchSpectra(spectrum1=spectrum1, spectrum2=spectrum2), 0.9957219)
+  expect_equal(matchSpectra(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)]), 0)
 })
