@@ -22,15 +22,28 @@ shiftMatrix <- function(mat, x, n, def=NA){
     if (n<0) {
         n <- abs(n)
         res <- mat[,x[seq_len(length(x)-n)+n] ]##, rep(def, n))
-        res <- cbind(matrix(res, nrow=nrow(mat), byrow=TRUE), 
+        res <- cbind(matrix(res, nrow=nrow(mat), byrow=FALSE), 
                       matrix(def, nrow=nrow(mat), ncol=n))
     } else {
         res <- mat[,x[seq_len(length(x)-n)]]
         res <- cbind(matrix(def, nrow=nrow(mat), ncol=n), 
-                      matrix(res, nrow(mat), byrow=TRUE))
+                      matrix(res, nrow(mat), byrow=FALSE))
     }
     return(res)
 }
+mat_l <- matrix(letters[1:18], ncol=6, nrow=3)
+## tests
+shiftMatrix(mat_l, x=c(2, 4, 6), n=-1)
+matrix(c("j", "p", NA, "k", "q", NA, "l", "r", NA), ncol=3, nrow=3, byrow=TRUE)
+shiftMatrix(mat_l, x=c(2, 4, 6), n=-2)
+matrix(c("p", NA, NA, "q", NA, NA, "r", NA, NA), ncol=3, nrow=3, byrow=TRUE)
+
+shiftMatrix(mat_l, x=c(2, 4, 6), n=1)
+matrix(c(NA, "d", "j", NA, "e", "k", NA, "f", "l"), ncol=3, nrow=3, byrow=TRUE)
+shiftMatrix(mat_l, x=c(2, 4, 6), n=2)
+matrix(c(NA, NA, "d", NA, NA, "e", NA, NA, "f"), ncol=3, nrow=3, byrow=TRUE)
+
+
 
 ## taken from MetCirc
 #' @name compare_Spectra
@@ -260,15 +273,18 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
         if (ncol(res_i) > 2) { ## do this if there is only ############################################
             ## a mapping multiple to multiple
         
-            crosses <- lapply(as.data.frame(res_i[, seqs], stringsAsFactors=FALSE), 
+            ## check order of sp2s, they have to ascend, remove those that
+            ## do not ascend
+            crosses <- lapply(as.data.frame(t(res_i[, seqs]), stringsAsFactors=FALSE), 
                 function(a) as.numeric(substr(a, 5, nchar(a))))
-            crosses <- lapply(seq_along(crosses[-1]), function(a) crosses[[a]] <= crosses[[a+1]])
-            ## check where all are TRUE: make a logical matrix and use apply(m, 2, all) 
-            ## shift columns by +2, +4, +6, etc. and fill with NA
-            crosses <-  matrix(unlist(crosses), nrow=length(crosses), byrow=TRUE)
-            res_i <- res_i[apply(crosses, 2, all),]
-            res_i <- matrix(res_i, ncol=length(seqs)*2)
-    
+            ## check where all are TRUE, remove before NAs
+            crosses <- lapply(crosses, function(a) {
+              a <- a[!is.na(a)]
+              all(a == sort(a))
+            })
+            ##crosses <- lapply(seq_along(crosses[-1]), function(a) crosses[[a]] <= crosses[[a+1]])
+            res_i <- matrix(res_i[unlist(crosses), ], ncol=ncol(res_i))
+            
             ## create shifted matrices, do not use last element since it contains
             ## only NAs 
             shift_right <- lapply(seqs[-length(seqs)], function(a) shiftMatrix(res_i, seqs, a/2))
@@ -291,21 +307,25 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
             ## the ones that are shifted out, link to NA and bind to NA
             ## for mat_shift_left (take from shift_right and inverse)
             add_left <- shift_right[length(shift_right):1]
+            ##add_left <- lapply(add_left, function(x) x[nrow(x):1],)
             ##add_left <- lapply(add_left, function(x) x[length(x):1])
-            add_left <- lapply(add_left, function(x) x[-1])
+            add_left <- lapply(add_left, function(x) x[,-1])
             
-            mat_add_left <- mat_add_right <- matrix("NA", ncol=length(add_left)*2, nrow=length(add_left))
+            mat_add_left <- mat_add_right <- matrix("NA", ncol=length(shift_left)*2, nrow=nrow(mat_shift_left))
             mat_add_left[, seqs[-length(seqs)]] <- unlist(add_left)
             
             ## for mat_shift_right (take from shift_left and inverse)
             add_right <- shift_left[length(shift_left):1]
-            add_right <- lapply(add_right, function(x) x[length(x):1])
-            add_right <- lapply(add_right, function(x) x[-1])
+            add_right <- lapply(add_right, function(x) matrix(x[,ncol(x):1], ncol=ncol(x)))
+            add_right <- lapply(add_right, function(x) x[,-1])
             mat_add_right[, seqs[-length(seqs)]] <- unlist(add_right)
             
             ## cbind with mat_add_left and mat_add_right
             mat_shift_left <- cbind(mat_shift_left, mat_add_left)
             mat_shift_right <- cbind(mat_shift_right, mat_add_right)
+            
+            #apply(mat_shift_left, 1, table)
+            #apply(mat_shift_right, 1, table)
             
             ## add to res_i
             res_i <- cbind(res_i, matrix("NA", nrow=nrow(res_i), ncol=ncol(mat_add_left)))
@@ -342,6 +362,7 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
         sp1_ind <- sp1_ind[!ind_remove]
         sp2_ind <- sp2_ind[!ind_remove]
         
+        ## create vectors that store mz and intensity of combination
         mz1 <- rep(NA, length(sp1_ind))
         int1 <- numeric(length(sp1_ind))
         mz2 <- rep(NA, length(sp2_ind))
@@ -411,8 +432,8 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
 
 ################################### workflow# ##################################
 ## two example spectras
-spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001),
-                      c(1, 1, 1, 1, 1.5, 1.2)), ncol=2, nrow=6, byrow=FALSE)
+spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001, 400.00011, 400.00012),
+                      c(1, 1, 1, 1, 1.5, 1.2, 1.0, 1.0)), ncol=2, nrow=8, byrow=FALSE)
 colnames(spectrum1) <- c("mz", "intensity")
 
 spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 399.99998, 399.999999, 400.00005, 400.00006),
@@ -436,7 +457,7 @@ colnames(spectrum2) <- c("mz", "intensity")
 ##NA      <-> 300.0250
 matchSpectra(x=spectrum1, y=spectrum2, n=1, m=0.2) ## 0.998162
 
-  sp1 <- as.matrix(spectrum1[, -c(2:6)])
+sp1 <- as.matrix(spectrum1[, -c(2:6)])
 sp2 <- spectrum2
 
 
