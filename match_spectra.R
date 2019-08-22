@@ -32,20 +32,28 @@ shiftMatrix <- function(mat, x, n, def=NA){
     return(res)
 }
 
-## test_that
+## tests with test_that
 library("testthat")
+
+## create test matrices
 mat_l <- matrix(letters[1:18], ncol=6, nrow=3)
-## tests
-shiftMatrix(mat_l, x=c(2, 4, 6), n=-1)
-matrix(c("j", "p", NA, "k", "q", NA, "l", "r", NA), ncol=3, nrow=3, byrow=TRUE)
-shiftMatrix(mat_l, x=c(2, 4, 6), n=-2)
-matrix(c("p", NA, NA, "q", NA, NA, "r", NA, NA), ncol=3, nrow=3, byrow=TRUE)
+## n: negative, p: positive
+mat_n1 <- matrix(c("j", "p", NA, "k", "q", NA, "l", "r", NA), ncol=3, nrow=3, byrow=TRUE)
+mat_n2 <- matrix(c("p", NA, NA, "q", NA, NA, "r", NA, NA), ncol=3, nrow=3, byrow=TRUE)
+mat_p1 <- matrix(c(NA, "d", "j", NA, "e", "k", NA, "f", "l"), ncol=3, nrow=3, byrow=TRUE)
+mat_p2 <- matrix(c(NA, NA, "d", NA, NA, "e", NA, NA, "f"), ncol=3, nrow=3, byrow=TRUE)
 
-shiftMatrix(mat_l, x=c(2, 4, 6), n=1)
-matrix(c(NA, "d", "j", NA, "e", "k", NA, "f", "l"), ncol=3, nrow=3, byrow=TRUE)
-shiftMatrix(mat_l, x=c(2, 4, 6), n=2)
-matrix(c(NA, NA, "d", NA, NA, "e", NA, NA, "f"), ncol=3, nrow=3, byrow=TRUE)
 
+test_that("", {
+  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=-1), mat_n1)
+  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=-2), mat_n2)
+  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=1), mat_p1)
+  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=2), mat_p2)
+  expect_error(shiftMatrix(x=c(2,4,6), n=1, def=NA))
+  expect_error(shiftMatrix(mat=mat_l, n=1, def=NA))
+  expect_error(shiftMatrix(mat=mat_l, x=c(2,4,6), def=NA))
+  expect_error(shiftMatrix(mat=mat_l, x=c(2,4,6,8,10), n=1, def=NA))
+})
 
 
 ## taken from MetCirc
@@ -450,12 +458,7 @@ colnames(spectrum2) <- c("mz", "intensity")
 ##300.01  <-> 300.002
 ##300.02  <-> 300.0255 --> gives higher score
 ##NA      <-> 300.0250
-matchSpectra(x=spectrum1[-(2:3),], y=spectrum2, n=1, m=0.2) ## 0.998162
-
-sp1 <- t(as.matrix(spectrum1[-c(2:4),]))
-sp2 <- spectrum2[-1, ]
-
-
+matchSpectra(x=spectrum1, y=spectrum2, n=1, m=0.2) 
 
 ## unit tests via test_that
 library("testthat")
