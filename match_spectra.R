@@ -9,7 +9,7 @@ library(MSnbase)
 #' sets the added columns to \code{def}.
 #' @usage shiftMatrix(mat, x, n, def=NA)
 #' @param mat matrix
-#' @param x
+#' @param x numeric, col indices to shift
 #' @param n numeric
 #' @param def character/numeric, replacement value for added columns
 #' @details Helper function for \code{matchSpectra}
@@ -22,10 +22,12 @@ shiftMatrix <- function(mat, x, n, def=NA){
     if (n<0) {
         n <- abs(n)
         res <- mat[,x[seq_len(length(x)-n)+n] ]##, rep(def, n))
-        res <- cbind(res, matrix(NA, nrow=nrow(mat), ncol=n))
+        res <- cbind(matrix(res, nrow=nrow(mat), byrow=TRUE), 
+                      matrix(def, nrow=nrow(mat), ncol=n))
     } else {
         res <- mat[,x[seq_len(length(x)-n)]]
-        res <- cbind(matrix(NA, nrow=nrow(mat), ncol=n), res)
+        res <- cbind(matrix(def, nrow=nrow(mat), ncol=n), 
+                      matrix(res, nrow(mat), byrow=TRUE))
     }
     return(res)
 }
@@ -126,19 +128,19 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
 
 #' @name matchSpectra
 #' @title Match two spectra using bipartite networks and combinatorics
-#' @description \code{matchSpectra} takes two objects, \code{spectrum1} and 
-#' \code{spectrum2} as input that contain spectral information. The matching 
+#' @description \code{matchSpectra} takes two objects, \code{x} and 
+#' \code{y} as input that contain spectral information. The matching 
 #' is a multi-step procedure: 
 #' 1) filtering based on \code{ppm},
-#' 2) retain order of matches between features of \code{spectrum1} and 
-#' \code{spectrum2} (remove crossing edges that violate the order of matching
+#' 2) retain order of matches between features of \code{x} and 
+#' \code{y} (remove crossing edges that violate the order of matching
 #' m/z),
 #' 3) calculate all combinations of the remaining possibilities.  
-#' @usage matchSpectra(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...)
-#' @param spectrum1 matrix, the first row contains m/z value and the second 
-#' row contains the corresponding intensity values
-#' @param  spectrum2 matrix, the first row contains m/z value and the second 
-#' row contains the corresponding intensity values
+#' @usage matchSpectra(x, y, ppm=20, fun=normalizeddotproduct, ...)
+#' @param x matrix, the first row contains m/z value and the second 
+#' row contains the corresponding intensity values                            --> x
+#' @param  y matrix, the first row contains m/z value and the second 
+#' row contains the corresponding intensity values                          --> y
 #' @param ppm numeric, tolerance parameter in ppm to match corresponding peaks
 #' @param fun function
 #' @param ... additional parameters passed to compare_Spectra
@@ -146,51 +148,54 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
 #' spectral objects, i.e. \code{fun} is calculated over all combinations and 
 #' the similarity of the combination that yields the highest similarity is 
 #' returned. 
-#' @return numeric, highest similarity score from all possible combinations
+#' @return list with elements x and y each being a matrix (columns "mz" 
+#' each row (peak) in x matching the row (peak) in y
 #' @author Thomas Naake \email{thomasnaake@@googlemail.com}
 #' @examples 
-#' matchSpectra(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...)
+#' matchSpectra(x, y, ppm=20, fun=normalizeddotproduct, ...)
 ## function to match spectrum objects using bipartite networks and combinations
-## to match peaks --> objective function is highest similarity between Spectrum2
-matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct, ...) {
+## to match peaks --> objective function is highest similarity between y
+matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
     
-    if (!is.matrix(spectrum1)) stop("spectrum1 is not a matrix")
-    if (!is.matrix(spectrum2)) stop("spectrum2 is not a matrix")
+    if (!is.matrix(x)) stop("x is not a matrix")
+    if (!is.matrix(y)) stop("y is not a matrix")
+    if (!all(colnames(x) %in% c("mz", "intensity"))) stop("colnames(x) are not 'mz' and 'intensity'")
+    if (!all(colnames(y) %in% c("mz", "intensity")))stop("colnames(y) are not 'mz' and 'intensity'")
     
-    ## re-set colnames for spectrum1 and spectrum2 and order
-    colnames(spectrum1) <- paste("sp1_", 1:ncol(spectrum1),sep="")
-    colnames(spectrum2) <- paste("sp2_", 1:ncol(spectrum2),sep="")
-    if (ncol(spectrum1) > 1) spectrum1 <- spectrum1[, order(spectrum1[1, ])]
-    if (ncol(spectrum2) > 1) spectrum2 <- spectrum2[, order(spectrum2[1, ])]
+    ## re-set colnames for x and y and order
+    rownames(x) <- paste("sp1_", 1:nrow(x),sep="")
+    rownames(y) <- paste("sp2_", 1:nrow(y),sep="")
+    if (nrow(x) > 1) x <- x[order(x[, 1]), ]
+    if (nrow(y) > 1) y <- y[order(y[, 1]), ]
     
-    ## 1) create adjacency matrix and remove edges within spectrum1 and 
-    ## within spectrum2
-    w <- matrix(1, ncol=ncol(spectrum1)+ncol(spectrum2), 
-        nrow=ncol(spectrum1)+ncol(spectrum2),
-        dimnames=list(c(colnames(spectrum1), colnames(spectrum2)),
-            c(colnames(spectrum1), colnames(spectrum2))
+    ## 1) create adjacency matrix and remove edges within x and 
+    ## within y
+    w <- matrix(1, ncol=nrow(x)+nrow(y), 
+        nrow=nrow(x)+nrow(y),
+        dimnames=list(c(rownames(x), rownames(y)),
+            c(rownames(x), rownames(y))
     ))
     
-    w[colnames(spectrum1), colnames(spectrum1)] <- 0
-    w[colnames(spectrum2), colnames(spectrum2)] <- 0
+    w[rownames(x), rownames(x)] <- 0
+    w[rownames(y), rownames(y)] <- 0
     
     ## 2) remove edges that are not in a certain range
-    ppm_1_1 <- spectrum1[1,] / abs(ppm / 10 ^ 6  - 1 ) 
-    ppm_1_2 <- spectrum1[1,] / abs(ppm / 10 ^ 6  + 1 ) 
-    ppm_2_1 <- spectrum2[1,] / abs(ppm / 10 ^ 6  - 1 ) 
-    ppm_2_2 <- spectrum2[1,] / abs(ppm / 10 ^ 6  + 1 ) 
+    ppm_1_1 <- x[,1] / abs(ppm / 10 ^ 6  - 1 ) 
+    ppm_1_2 <- x[,1] / abs(ppm / 10 ^ 6  + 1 ) 
+    ppm_2_1 <- y[,1] / abs(ppm / 10 ^ 6  - 1 ) 
+    ppm_2_2 <- y[,1] / abs(ppm / 10 ^ 6  + 1 ) 
 
-    mat1 <- apply(as.matrix(ppm_1_2), 1, function(x) x <= c(ppm_1_1, ppm_2_1))
-    mat2 <- apply(as.matrix(ppm_1_1), 1, function(x) x >= c(ppm_1_2, ppm_2_2))
+    mat1 <- apply(as.matrix(ppm_1_2), 1, function(a) a <= c(ppm_1_1, ppm_2_1))
+    mat2 <- apply(as.matrix(ppm_1_1), 1, function(a) a >= c(ppm_1_2, ppm_2_2))
 
     link_ppm <- mat1*mat2
     w[rownames(link_ppm), colnames(link_ppm)] <- link_ppm
     w[colnames(link_ppm), rownames(link_ppm)] <- t(link_ppm)
-    w[colnames(spectrum1), colnames(spectrum1)] <- 0
-    w[colnames(spectrum2), colnames(spectrum2)] <- 0
+    w[rownames(x), rownames(x)] <- 0
+    w[rownames(y), rownames(y)] <- 0
 
     ## obtain network components from w
-    net <- graph_from_adjacency_matrix(w, weighted=FALSE, mode="undirected")
+    net <- graph_from_adjacency_matrix(w, weighted=NULL, mode="undirected")
     comp <- components(net)
     
     ## 3) get all possible combinations within one component
@@ -199,42 +204,47 @@ matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct,
     
     ## write to res combinations where csize == 2
     inds_1 <- which(comp$csize == 1)
-    res[inds_1] <- lapply(inds_1, function(x) {
-        ms <- names(which(comp$membership == x))
+    res[inds_1] <- lapply(inds_1, function(a) {
+        ms <- names(which(comp$membership == a))
         if (grepl(x=ms, pattern="sp1")) {ms <- c(ms, NA) } else{ms <- c(NA, ms)}
         matrix(ms, ncol=2)
     })
     ## write to res combinations where csize == 2
     inds_2 <- which(comp$csize == 2)
-    res[inds_2] <- lapply(inds_2, function(x) matrix(names(which(comp$membership == x)), ncol=2))
+    res[inds_2] <- lapply(inds_2, function(a) matrix(names(which(comp$membership == a)), ncol=2))
 
     ## get combinations where csize > 2
     inds <- which(comp$csize > 2)
+    ####################################################################################################
     for (i in inds) {
         
-        ## separate component and create two matrices from spectrum1 and 
-        ## spectrum2 that only contain component menbers
+        ## separate component and create two matrices from x and 
+        ## y that only contain component menbers
         names_ind_i <- names(which(comp$membership == i))
-        s1_ind <- spectrum1[, names_ind_i[names_ind_i %in% colnames(spectrum1)] ]
-        s1_ind <- matrix(s1_ind, nrow=2,
-            dimnames=list(c("", ""), names_ind_i[names_ind_i %in% colnames(spectrum1)]))
-        s2_ind <- spectrum2[, names_ind_i[names_ind_i %in% colnames(spectrum2)] ]
-        s2_ind <- matrix(s2_ind, nrow=2, 
-            dimnames=list(c("", ""), names_ind_i[names_ind_i %in% colnames(spectrum2)]))
+        x_ind <- x[names_ind_i[names_ind_i %in% rownames(x)], ]
+        x_ind <- matrix(x_ind, ncol=2,
+            dimnames=list(names_ind_i[names_ind_i %in% rownames(x)], c("", "")))
+        y_ind <- y[names_ind_i[names_ind_i %in% rownames(y)], ]
+        y_ind <- matrix(y_ind, ncol=2, 
+            dimnames=list(names_ind_i[names_ind_i %in% rownames(y)], c("", ""))) 
         
-
-        ## allocate to x and y the names (colnames of spectrum1 and spectrum2 
+        ## allocate to c1 and c2 the names (colnames of x and y 
         ## that are in the specific component)
-        if (ncol(s1_ind) < ncol(s2_ind)) {
-            x <- colnames(s1_ind); y <- colnames(s2_ind)
+        if (nrow(x_ind) < nrow(y_ind)) {
+            c1 <- rownames(x_ind); c2 <- rownames(y_ind)
+            c1 <- c(c1, rep("NA", length(c2)-length(c1))) 
+            c1_c2 <- lapply(c1, function(a) expand.grid(a, c2))
         } else {
-            x <- colnames(s2_ind); y <- colnames(s1_ind)
+            c1 <- rownames(y_ind); c2 <- rownames(x_ind)
+            c1 <- c(c1, rep("NA", length(c2)-length(c1))) 
+            c1_c2 <- lapply(c2, function(a) expand.grid(a, c1))
         }
-        x_y <- lapply(x, function(x) expand.grid(x, y))
-        x_y_paste <- lapply(x_y, function(x) apply(x, 1, function(y) paste(sort(y), collapse=" & ")))
+        ##c1 <- c(c1, rep("NA", length(c2)-length(c1))) #################################################################
+        ##c1_c2 <- lapply(c1, function(a) expand.grid(a, c2))
+        c1_c2_paste <- lapply(c1_c2, function(a) apply(a, 1, function(b) paste(b, collapse=" & ")))
     
         ## calculate all possible combinations
-        res_i <- as.matrix(expand.grid(x_y_paste, stringsAsFactors=FALSE))
+        res_i <- as.matrix(expand.grid(c1_c2_paste, stringsAsFactors=FALSE))
         ## write rows to list
         res_i <- split(res_i, row(res_i))
         ## strsplit " & ", unlist and write to matrix 
@@ -247,12 +257,12 @@ matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct,
         
         ## filtering for crossing matching: retain order of m/z
         seqs <- seq(2, ncol(res_i), by=2)
-        if (nrow(res_i) > 2 & ncol(res_i) > 2) { ## do this if there is only 
+        if (ncol(res_i) > 2) { ## do this if there is only ############################################
             ## a mapping multiple to multiple
         
-            crosses <- lapply(as.data.frame(res_i[, seqs], stringsAsFactors = F), 
-                function(x) as.numeric(substr(x, 5, nchar(x))))
-            crosses <- lapply(seq_along(crosses[-1]), function(x) crosses[[x]] <= crosses[[x+1]])
+            crosses <- lapply(as.data.frame(res_i[, seqs], stringsAsFactors=FALSE), 
+                function(a) as.numeric(substr(a, 5, nchar(a))))
+            crosses <- lapply(seq_along(crosses[-1]), function(a) crosses[[a]] <= crosses[[a+1]])
             ## check where all are TRUE: make a logical matrix and use apply(m, 2, all) 
             ## shift columns by +2, +4, +6, etc. and fill with NA
             crosses <-  matrix(unlist(crosses), nrow=length(crosses), byrow=TRUE)
@@ -261,23 +271,45 @@ matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct,
     
             ## create shifted matrices, do not use last element since it contains
             ## only NAs 
-            shift_right <- lapply(seqs[-length(seqs)], function(x) shiftMatrix(res_i, seqs, x/2))
-            shift_left <- lapply(seqs[-length(seqs)], function(x) shiftMatrix(res_i, seqs, -x/2))
+            shift_right <- lapply(seqs[-length(seqs)], function(a) shiftMatrix(res_i, seqs, a/2))
+            shift_left <- lapply(seqs[-length(seqs)], function(a) shiftMatrix(res_i, seqs, -a/2))
     
             ## write to matrix
-            mat_shift_left <- lapply(shift_left, function(x) {
-                res_i[, seqs] <- x
+            mat_shift_left <- lapply(shift_left, function(a) {
+                res_i[, seqs] <- a
                 return(res_i)
             })
-            mat_shift_right <- lapply(shift_right, function(x) {
-                res_i[, seqs] <- x
+            mat_shift_right <- lapply(shift_right, function(a) {
+                res_i[, seqs] <- a
                 return(res_i)
             })
-    
+            
             ## rbind the lists
             mat_shift_left <- do.call(rbind, mat_shift_left)
             mat_shift_right <- do.call(rbind, mat_shift_right)
-    
+      
+            ## the ones that are shifted out, link to NA and bind to NA
+            ## for mat_shift_left (take from shift_right and inverse)
+            add_left <- shift_right[length(shift_right):1]
+            ##add_left <- lapply(add_left, function(x) x[length(x):1])
+            add_left <- lapply(add_left, function(x) x[-1])
+            
+            mat_add_left <- mat_add_right <- matrix("NA", ncol=length(add_left)*2, nrow=length(add_left))
+            mat_add_left[, seqs[-length(seqs)]] <- unlist(add_left)
+            
+            ## for mat_shift_right (take from shift_left and inverse)
+            add_right <- shift_left[length(shift_left):1]
+            add_right <- lapply(add_right, function(x) x[length(x):1])
+            add_right <- lapply(add_right, function(x) x[-1])
+            mat_add_right[, seqs[-length(seqs)]] <- unlist(add_right)
+            
+            ## cbind with mat_add_left and mat_add_right
+            mat_shift_left <- cbind(mat_shift_left, mat_add_left)
+            mat_shift_right <- cbind(mat_shift_right, mat_add_right)
+            
+            ## add to res_i
+            res_i <- cbind(res_i, matrix("NA", nrow=nrow(res_i), ncol=ncol(mat_add_left)))
+            
             ## assign to res
             res[[i]] <- rbind(res_i, mat_shift_left, mat_shift_right)
         } else {
@@ -286,7 +318,7 @@ matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct,
     }
 
     ## create combinations between rows 
-    res_paste <- lapply(res, function(x) apply(x, 1, paste, collapse=" & "))
+    res_paste <- lapply(res, function(a) apply(a, 1, paste, collapse=" & "))
 
     ## 4) calculate all possible combinations between the components
     res_exp <- as.matrix(expand.grid(res_paste, stringsAsFactors=FALSE))
@@ -299,25 +331,34 @@ matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct,
 
     ## 5) go through every row and calculate score: row with highest score is 
     ## the best match
-    sim <- apply(res_exp, 1, function(x) {
-        sp1_ind <- x[seq(1, ncol(res_exp), 2)] 
-        sp2_ind <- x[seq(2, ncol(res_exp), 2)] 
-    
+    sim <- apply(res_exp, 1, function(a) {
+        sp1_ind <- a[seq(1, ncol(res_exp), 2)] 
+        sp2_ind <- a[seq(2, ncol(res_exp), 2)] 
+        
+        ## remove elements when two "NA" are at the same position 
+        ## (they were created artificially in the above step when pushing 
+        ## sp1/sp2 out and cbinding the pushed out from the matrix)
+        ind_remove <- sp1_ind == "NA" & sp2_ind == "NA"
+        sp1_ind <- sp1_ind[!ind_remove]
+        sp2_ind <- sp2_ind[!ind_remove]
+        
         mz1 <- rep(NA, length(sp1_ind))
         int1 <- numeric(length(sp1_ind))
         mz2 <- rep(NA, length(sp2_ind))
         int2 <- numeric(length(sp2_ind))
-        mz1[sp1_ind != "NA"] <- spectrum1[1, sp1_ind[sp1_ind != "NA"]]
-        mz2[sp2_ind != "NA"] <- spectrum2[1, sp2_ind[sp2_ind != "NA"]]
-        int1[sp1_ind != "NA"] <- spectrum1[2, sp1_ind[sp1_ind != "NA"]]
-        int2[sp2_ind != "NA"] <- spectrum2[2, sp2_ind[sp2_ind != "NA"]]
-
+        mz1[sp1_ind != "NA"] <- x[sp1_ind[sp1_ind != "NA"], "mz"]
+        mz2[sp2_ind != "NA"] <- y[sp2_ind[sp2_ind != "NA"], "mz"]
+        int1[sp1_ind != "NA"] <- x[sp1_ind[sp1_ind != "NA"], "intensity"]
+        int2[sp2_ind != "NA"] <- y[sp2_ind[sp2_ind != "NA"], "intensity"]
+        
+        mz1_old <- mz1
+        mz2_old <- mz2
         ## replace NA value in mz1 and mz2 by average of neighbours in order to 
         ## secure that mz are strictly monotonically increasing
         ## PROBLEM: when any other function is used this can result to errors
         ## PROBLEM: what is better approach? take mz from the other spectrum at that
         ## position --> could be smaller or greater than neighbour m/z values
-        ## --> when creating Spectrum2 mz values are ordered increasingly
+        ## --> when creating y mz values are ordered increasingly
   
         ## if the first element is NA set it to minimum value - 0.01 or 0
         if (is.na(mz1[1])) mz1[1] <- max(min(mz1, na.rm=TRUE) - 0.01, 0)
@@ -334,31 +375,68 @@ matchSpectra <- function(spectrum1, spectrum2, ppm=20, fun=normalizeddotproduct,
             for (i in ind_na_2) mz2[i] <- mz2[i-1]+1e-30    
         }
     
-        ## problem Spectrum2 reorders mz and associated ntensities!!!!
+        ## problem y reorders mz and associated ntensities!!!!
         
-        ## create Spectrum2 objects
+        ## create y objects
         S2_1 <- new("Spectrum2", precursorMz=max(mz1, na.rm=TRUE), mz=mz1, intensity=int1)
         S2_2 <- new("Spectrum2", precursorMz=max(mz2, na.rm=TRUE), mz=mz2, intensity=int2)
         ## calculate similarity
-        compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)
+        value <- compareSpectra(S2_1, S2_2, fun=normalizeddotproduct, binning=FALSE)##compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)
+        
+        ## cbind spectra
+        x <- cbind(mz=mz1_old, intensity=int1)
+        y <- cbind(mz=mz2_old, intensity=int2)
+        
+        l <- list(value=value, x=x, y=y)
+        return(l)
     })
-
-    return(max(sim))
+    sim_value <- unlist(lapply(sim, "[[", "value"))
+    sim_max <- sim[[which.max(sim_value)]]
+    
+    ## sort according to ascending order
+    x_max <- sim_max[["x"]]
+    y_max <- sim_max[["y"]]
+    
+    sort_x_y <- lapply(seq_len(nrow(x_max)), function(a) 
+      paste(sort(c(x_max[a, "mz"], y_max[a, "mz"])), collapse="_")
+    )
+    sort_x_y <- order(unlist(sort_x_y))
+    x_max <- x_max[sort_x_y,]
+    y_max <- y_max[sort_x_y,]
+    
+    l <- list(x=x_max, y=y_max)
+    return(l)
 
 }
 
 ################################### workflow# ##################################
 ## two example spectras
 spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001),
-                      c(1, 1, 1, 1, 1.5, 1.2)), ncol=6, nrow=2, byrow=TRUE)
+                      c(1, 1, 1, 1, 1.5, 1.2)), ncol=2, nrow=6, byrow=FALSE)
+colnames(spectrum1) <- c("mz", "intensity")
 
 spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 399.99998, 399.999999, 400.00005, 400.00006),
-                      c(1, 1, 1, 1.5, 2, 2.5, 2.4)), ncol=7, nrow=2, byrow=TRUE)
+                      c(1, 1, 1, 1.5, 2, 2.5, 2.4)), ncol=2, nrow=7, byrow=FALSE)
+colnames(spectrum2) <- c("mz", "intensity")
 
+# spectrum1 <- matrix(c(c(100.001, 100.002, 300.01, 300.02),
+#                       c(1, 1, 1, 1)), ncol=2, nrow=4, byrow=FALSE)
+# colnames(spectrum1) <- c("mz", "intensity")
+# 
+# spectrum2 <- matrix(c(c(100.0, 200.0, 300.002, 300.025, 300.0255),
+#                       c(1, 1, 1, 1, 1)), ncol=2, nrow=5, byrow=FALSE)
+# colnames(spectrum2) <- c("mz", "intensity")
 
-matchSpectra(spectrum1=as.matrix(spectrum1[,-c(2:6)]), spectrum2=spectrum2, n=1, m=0.2)
+## should give
+##100.001 <-> 100
+##100.002 <-> NA --> gives higher score
+##NA      <-> 200.0
+##300.01  <-> 300.002
+##300.02  <-> 300.0255 --> gives higher score
+##NA      <-> 300.0250
+matchSpectra(x=spectrum1, y=spectrum2, n=1, m=0.2) ## 0.998162
 
-sp1 <- as.matrix(spectrum1[, -c(2:6)])
+  sp1 <- as.matrix(spectrum1[, -c(2:6)])
 sp2 <- spectrum2
 
 
@@ -368,10 +446,10 @@ sp2 <- spectrum2
 ## expect_equal
 library("testthat")
 
-matchSpectra(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)])
+matchSpectra(x=spectrum1[,1:2], y=spectrum2[,-c(1:3)])
 
 test_that("", {
-  expect_equal(matchSpectra(spectrum1=spectrum1, spectrum2=spectrum1), 1)
-  expect_equal(matchSpectra(spectrum1=spectrum1, spectrum2=spectrum2), 0.9957219)
-  expect_equal(matchSpectra(spectrum1=spectrum1[,1:2], spectrum2=spectrum2[,-c(1:3)]), 0)
+  expect_equal(matchSpectra(x=spectrum1, y=spectrum1), 1)
+  expect_equal(matchSpectra(x=spectrum1, y=spectrum2), 0.9957219)
+  expect_equal(matchSpectra(x=spectrum1[,1:2], y=spectrum2[,-c(1:3)]), 0)
 })
