@@ -31,6 +31,9 @@ shiftMatrix <- function(mat, x, n, def=NA){
     }
     return(res)
 }
+
+## test_that
+library("testthat")
 mat_l <- matrix(letters[1:18], ncol=6, nrow=3)
 ## tests
 shiftMatrix(mat_l, x=c(2, 4, 6), n=-1)
@@ -193,10 +196,10 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
     w[rownames(y), rownames(y)] <- 0
     
     ## 2) remove edges that are not in a certain range
-    ppm_1_1 <- x[,1] / abs(ppm / 10 ^ 6  - 1 ) 
-    ppm_1_2 <- x[,1] / abs(ppm / 10 ^ 6  + 1 ) 
-    ppm_2_1 <- y[,1] / abs(ppm / 10 ^ 6  - 1 ) 
-    ppm_2_2 <- y[,1] / abs(ppm / 10 ^ 6  + 1 ) 
+    ppm_1_1 <- x[,1] / abs(ppm / 10 ^ 6  - 1 ); names(ppm_1_1) <- rownames(x) 
+    ppm_1_2 <- x[,1] / abs(ppm / 10 ^ 6  + 1 ); names(ppm_1_2) <- rownames(x)
+    ppm_2_1 <- y[,1] / abs(ppm / 10 ^ 6  - 1 ); names(ppm_2_1) <- rownames(y) 
+    ppm_2_2 <- y[,1] / abs(ppm / 10 ^ 6  + 1 ); names(ppm_2_2) <- rownames(y)
 
     mat1 <- apply(as.matrix(ppm_1_2), 1, function(a) a <= c(ppm_1_1, ppm_2_1))
     mat2 <- apply(as.matrix(ppm_1_1), 1, function(a) a >= c(ppm_1_2, ppm_2_2))
@@ -402,7 +405,7 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
         S2_1 <- new("Spectrum2", precursorMz=max(mz1, na.rm=TRUE), mz=mz1, intensity=int1)
         S2_2 <- new("Spectrum2", precursorMz=max(mz2, na.rm=TRUE), mz=mz2, intensity=int2)
         ## calculate similarity
-        value <- compareSpectra(S2_1, S2_2, fun=normalizeddotproduct, binning=FALSE)##compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)
+        value <- compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)##compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)
         
         ## cbind spectra
         x <- cbind(mz=mz1_old, intensity=int1)
@@ -430,7 +433,7 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
 
 }
 
-################################### workflow# ##################################
+################################### workflow ###################################
 ## two example spectras
 spectrum1 <- matrix(c(c(100, 200, 200.001, 400, 400.00005, 400.0001, 400.00011, 400.00012),
                       c(1, 1, 1, 1, 1.5, 1.2, 1.0, 1.0)), ncol=2, nrow=8, byrow=FALSE)
@@ -440,14 +443,6 @@ spectrum2 <- matrix(c(c(100.001, 199.999, 200.0005, 399.99998, 399.999999, 400.0
                       c(1, 1, 1, 1.5, 2, 2.5, 2.4)), ncol=2, nrow=7, byrow=FALSE)
 colnames(spectrum2) <- c("mz", "intensity")
 
-# spectrum1 <- matrix(c(c(100.001, 100.002, 300.01, 300.02),
-#                       c(1, 1, 1, 1)), ncol=2, nrow=4, byrow=FALSE)
-# colnames(spectrum1) <- c("mz", "intensity")
-# 
-# spectrum2 <- matrix(c(c(100.0, 200.0, 300.002, 300.025, 300.0255),
-#                       c(1, 1, 1, 1, 1)), ncol=2, nrow=5, byrow=FALSE)
-# colnames(spectrum2) <- c("mz", "intensity")
-
 ## should give
 ##100.001 <-> 100
 ##100.002 <-> NA --> gives higher score
@@ -455,22 +450,36 @@ colnames(spectrum2) <- c("mz", "intensity")
 ##300.01  <-> 300.002
 ##300.02  <-> 300.0255 --> gives higher score
 ##NA      <-> 300.0250
-matchSpectra(x=spectrum1, y=spectrum2, n=1, m=0.2) ## 0.998162
+matchSpectra(x=spectrum1[-(2:3),], y=spectrum2, n=1, m=0.2) ## 0.998162
 
-sp1 <- as.matrix(spectrum1[, -c(2:6)])
-sp2 <- spectrum2
+sp1 <- t(as.matrix(spectrum1[-c(2:4),]))
+sp2 <- spectrum2[-1, ]
 
 
 
 ## unit tests via test_that
-## expect_equal
-## expect_equal
 library("testthat")
+## create example spectrum1 and spectrum2 and perform tests
+spectrum1 <- matrix(c(c(100.001, 100.002, 300.01, 300.02),
+                      c(1, 1, 1, 1)), ncol=2, nrow=4, byrow=FALSE)
+colnames(spectrum1) <- c("mz", "intensity")
 
-matchSpectra(x=spectrum1[,1:2], y=spectrum2[,-c(1:3)])
+spectrum2 <- matrix(c(c(100.0, 200.0, 300.002, 300.025, 300.0255),
+                      c(1, 1, 1, 1, 1)), ncol=2, nrow=5, byrow=FALSE)
+colnames(spectrum2) <- c("mz", "intensity")
+
+spectrum1_match <- matrix(c(100.002, 100.001, NA, 300.01, 300.02, 
+    NA, 1, 1, 0, 1, 1, 0), ncol=2, nrow=6, byrow=FALSE, dimnames=list(NULL, c("mz", "intensity")))
+spectrum2_match <- matrix(c(100.0, NA, 200.0, 300.002, 300.025, 300.0255,
+    1, 0, 1, 1, 1, 1), ncol=2, nrow=6, byrow=FALSE, dimnames=list(NULL, c("mz", "intensity")))
 
 test_that("", {
-  expect_equal(matchSpectra(x=spectrum1, y=spectrum1), 1)
-  expect_equal(matchSpectra(x=spectrum1, y=spectrum2), 0.9957219)
-  expect_equal(matchSpectra(x=spectrum1[,1:2], y=spectrum2[,-c(1:3)]), 0)
+  expect_equal(matchSpectra(x=spectrum1, y=spectrum1), list(x=spectrum1, y=spectrum1))
+  expect_equal(matchSpectra(x=spectrum2, y=spectrum2), list(x=spectrum2, y=spectrum2))
+  expect_equal(matchSpectra(x=spectrum1, y=spectrum2), list(x=spectrum1_match,
+                                                            y=spectrum2_match))
+  expect_error(matchSpectra(x=spectrum1[1,], y=spectrum2))
+  expect_error(matchSpectra(x=spectrum1))
+  expect_error(matchSpectra(y=spectrum2))
+  expect_error(matchSpectra(x=spectrum1, y=spectrum2, fun=max))
 })
