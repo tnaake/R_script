@@ -220,18 +220,31 @@ aln <- aln[!apply(aln, 1, function(x) any(is.na(x))), ]
 ## load files that contain spectra, do this for each sample individually
 ## for CID only 30 and 40 eV available, for HCD 30, 40 and 50 eV available
 ## for kernel
+## CID
 MK_cid30 <- read.table("mixMK-ddms2-CID30.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 MK_cid40 <- read.table("mixMK-ddms2-CID40.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+## HCD
 MK_hcd30 <- read.table("mixMK-ddms2-HCD30.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 MK_hcd40 <- read.table("mixMK-ddms2-HCD40.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 MK_hcd50 <- read.table("mixMK-ddms2-HCD50.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 
 ## for leaf
+## CID
 ML_cid30 <- read.table("mixML-ddms2-CID30.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 ML_cid40 <- read.table("mixML-ddms2-CID40.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+## HCD
 ML_hcd30 <- read.table("mixML-ddms2-HCD30.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 ML_hcd40 <- read.table("mixML-ddms2-HCD40.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 ML_hcd50 <- read.table("mixML-ddms2-HCD50.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+
+## for sweet maize
+## CID
+swM_cid30 <- read.table("QC-ddms-CID30.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+swM_cid40 <- read.table("QC-ddms-CID40.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+## HCD
+swM_hcd30 <- read.table("QC-ddms-HCD30.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+swM_hcd40 <- read.table("QC-ddms-HCD40.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
+swM_hcd50 <- read.table("QC-ddms-HCD50.txt", sep="\t", fill=TRUE, header=TRUE, stringsAsFactors=FALSE, quote="\"")
 
 ## 3) 
 ## truncate files and keep only columns that are of interest
