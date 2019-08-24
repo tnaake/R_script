@@ -13,10 +13,13 @@ library(MSnbase)
 #' @param n numeric
 #' @param def character/numeric, replacement value for added columns
 #' @details Helper function for \code{matchSpectra}
-#' @return matrix with all combinations of shifted rows
+#' @return matrix with all combinations of shifted rows, only returns the 
+#' cols x
 #' @author Thomas Naake \email{thomasnaake@@googlemail.com}
 #' @examples 
-#' shiftMatrix(mat, x, n, def=NA)
+#' mat <- matrix(letters[1:18], ncol=6, nrow=3)
+#' x <- c(2, 4, 6)
+#' shiftMatrix(mat=mat, x=x, n=1, def=NA)
 shiftMatrix <- function(mat, x, n, def=NA){
     if (n==0) { res <- mat }
     if (n<0) {
