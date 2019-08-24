@@ -45,14 +45,14 @@ mat_p2 <- matrix(c(NA, NA, "d", NA, NA, "e", NA, NA, "f"), ncol=3, nrow=3, byrow
 
 
 test_that("", {
-  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=-1), mat_n1)
-  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=-2), mat_n2)
-  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=1), mat_p1)
-  expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=2), mat_p2)
-  expect_error(shiftMatrix(x=c(2,4,6), n=1, def=NA))
-  expect_error(shiftMatrix(mat=mat_l, n=1, def=NA))
-  expect_error(shiftMatrix(mat=mat_l, x=c(2,4,6), def=NA))
-  expect_error(shiftMatrix(mat=mat_l, x=c(2,4,6,8,10), n=1, def=NA))
+    expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=-1), mat_n1)
+    expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=-2), mat_n2)
+    expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=1), mat_p1)
+    expect_equal(shiftMatrix(mat_l, x=c(2, 4, 6), n=2), mat_p2)
+    expect_error(shiftMatrix(x=c(2,4,6), n=1, def=NA))
+    expect_error(shiftMatrix(mat=mat_l, n=1, def=NA))
+    expect_error(shiftMatrix(mat=mat_l, x=c(2,4,6), def=NA))
+    expect_error(shiftMatrix(mat=mat_l, x=c(2,4,6,8,10), n=1, def=NA))
 })
 
 
@@ -183,6 +183,8 @@ matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
     
     if (!is.matrix(x)) stop("x is not a matrix")
     if (!is.matrix(y)) stop("y is not a matrix")
+    if (mode(x) != "numeric") stop("mode(x) is not 'numeric'")
+    if (mode(y) != "numeric") stop("mode(y) is not 'numeric'")
     if (!all(colnames(x) %in% c("mz", "intensity"))) stop("colnames(x) are not 'mz' and 'intensity'")
     if (!all(colnames(y) %in% c("mz", "intensity")))stop("colnames(y) are not 'mz' and 'intensity'")
     
