@@ -12,7 +12,7 @@ library(MSnbase)
 #' @param x numeric, col indices to shift
 #' @param n numeric
 #' @param def character/numeric, replacement value for added columns
-#' @details Helper function for \code{matchSpectra}
+#' @details Helper function for \code{graphPeaks}
 #' @return matrix with all combinations of shifted rows, only returns the 
 #' cols x
 #' @author Thomas Naake \email{thomasnaake@@googlemail.com}
@@ -153,9 +153,9 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
     sum( ws1*ws2, na.rm=TRUE) ^ 2 / ( sum( ws1^2, na.rm=TRUE) * sum( ws2^2, na.rm=TRUE ) )
 }
 
-#' @name matchSpectra
+#' @name graphPeaks
 #' @title Match two spectra using bipartite networks and combinatorics
-#' @description \code{matchSpectra} takes two objects, \code{x} and 
+#' @description \code{graphPeaks} takes two objects, \code{x} and 
 #' \code{y} as input that contain spectral information. The matching 
 #' is a multi-step procedure: 
 #' 1) filtering based on \code{ppm},
@@ -163,11 +163,11 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
 #' \code{y} (remove crossing edges that violate the order of matching
 #' m/z),
 #' 3) calculate all combinations of the remaining possibilities.  
-#' @usage matchSpectra(x, y, ppm=20, fun=normalizeddotproduct, ...)
+#' @usage graphPeaks(x, y, ppm=20, fun=normalizeddotproduct, ...)
 #' @param x matrix, the first row contains m/z value and the second 
-#' row contains the corresponding intensity values                            --> x
+#' row contains the corresponding intensity values                            
 #' @param  y matrix, the first row contains m/z value and the second 
-#' row contains the corresponding intensity values                          --> y
+#' row contains the corresponding intensity values                          
 #' @param ppm numeric, tolerance parameter in ppm to match corresponding peaks
 #' @param fun function
 #' @param ... additional parameters passed to compare_Spectra
@@ -179,10 +179,10 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
 #' each row (peak) in x matching the row (peak) in y
 #' @author Thomas Naake \email{thomasnaake@@googlemail.com}
 #' @examples 
-#' matchSpectra(x, y, ppm=20, fun=normalizeddotproduct, ...)
+#' graphPeaks(x, y, ppm=20, fun=normalizeddotproduct, ...)
 ## function to match spectrum objects using bipartite networks and combinations
 ## to match peaks --> objective function is highest similarity between y
-matchSpectra <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
+graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
     
     if (!is.matrix(x)) stop("x is not a matrix")
     if (!is.matrix(y)) stop("y is not a matrix")
@@ -463,7 +463,7 @@ colnames(spectrum2) <- c("mz", "intensity")
 ##300.01  <-> 300.002
 ##300.02  <-> 300.0255 --> gives higher score
 ##NA      <-> 300.0250
-matchSpectra(x=spectrum1, y=spectrum2, n=1, m=0.2) 
+graphPeaks(x=spectrum1, y=spectrum2, n=1, m=0.2) 
 
 ## unit tests via test_that
 library("testthat")
@@ -482,12 +482,12 @@ spectrum2_match <- matrix(c(100.0, NA, 200.0, 300.002, 300.025, 300.0255,
     1, 0, 1, 1, 1, 1), ncol=2, nrow=6, byrow=FALSE, dimnames=list(NULL, c("mz", "intensity")))
 
 test_that("", {
-  expect_equal(matchSpectra(x=spectrum1, y=spectrum1), list(x=spectrum1, y=spectrum1))
-  expect_equal(matchSpectra(x=spectrum2, y=spectrum2), list(x=spectrum2, y=spectrum2))
-  expect_equal(matchSpectra(x=spectrum1, y=spectrum2), list(x=spectrum1_match,
+  expect_equal(graphPeaks(x=spectrum1, y=spectrum1), list(x=spectrum1, y=spectrum1))
+  expect_equal(graphPeaks(x=spectrum2, y=spectrum2), list(x=spectrum2, y=spectrum2))
+  expect_equal(graphPeaks(x=spectrum1, y=spectrum2), list(x=spectrum1_match,
                                                             y=spectrum2_match))
-  expect_error(matchSpectra(x=spectrum1[1,], y=spectrum2))
-  expect_error(matchSpectra(x=spectrum1))
-  expect_error(matchSpectra(y=spectrum2))
-  expect_error(matchSpectra(x=spectrum1, y=spectrum2, fun=max))
+  expect_error(graphPeaks(x=spectrum1[1,], y=spectrum2))
+  expect_error(graphPeaks(x=spectrum1))
+  expect_error(graphPeaks(y=spectrum2))
+  expect_error(graphPeaks(x=spectrum1, y=spectrum2, fun=max))
 })
