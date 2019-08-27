@@ -1,6 +1,5 @@
 ## load required libraries
 library(igraph)
-library(MSnbase)
 
 ################################### functions ##################################
 #' @name shiftMatrix
@@ -59,57 +58,16 @@ test_that("", {
 })
 
 
-## taken from MetCirc
-#' @name compare_Spectra
-#' @title Create similarity matrix from MSnbase::Spectra object
-#' @description compare_Spectra creates a similarity matrix of all 
-#' Spectrum objects in \code{object}
-#' @usage compare_Spectra(object, fun, ...)
-#' @param object \code{Spectra}
-#' @param fun function or character, see ?MSnbase::compareSpectra for further
-#' information
-#' @param ... further arguments passed to compareSpectra
-#' @details Function inspired by compareSpectra.OnDiskMSnExp. Possibly 
-#' transfer to MSnbase.
-#' @return matrix with pair-wise similarities
-#' @author Thomas Naake (inspired by compareSpectra.OnDiskMSnExp)
-#' @examples 
-#' data("spectra", package="MetCirc")
-#' compare_Spectra(spectra_tissue[1:10], fun="dotproduct")
-#' @export
-compare_Spectra <- function(object, fun, ...) {
-  
-  nm <- names(object)
-  cb <- combn(nm, 2)
-  cb <- apply(cb, 2, function(x) compareSpectra(object[[x[1]]], object[[x[[2]]]], fun=fun, ...)) ## "dotproduct"
-  
-  m <- matrix(NA, length(object), length(object),
-              dimnames=list(nm, nm))
-  ## fill lower triangle of the matrix
-  m[lower.tri(m)] <- cb
-  ## copy to upper triangle
-  for (i in 1:nrow(m)) {
-    m[i, ] <- m[, i]
-  }
-  
-  diag(m) <- 1
-  
-  return(m)
-}
-
 
 ## taken from MetCirc
 #' @name normalizeddotproduct
 #' @title Calculate the normalized dot product
 #' @description Calculate the normalized dot product (NDP)
 #' @usage normalizeddotproduct(x, y, m=0.5, n=2, ...)
-#' @param x \code{Spectrum2} object from \code{MSnbase} containing
-#' intensity and m/z values, first MS/MS spectrum
-#' @param y \code{Spectrum2} object from \code{MSnbase} containing 
-#' intensity and m/z values, second MS/MS spectrum
+#' @param x list of length 2 with m/z and corresponding intensity values
+#' @param y list of length 2 with m/z and corresponding intensity values
 #' @param m \code{numeric}, exponent to calculate peak intensity-based weights
 #' @param n \code{numeric}, exponent to calculate m/z-based weights
-#' @param ... further arguments passed to MSnbase:::bin_Spectra
 #' @details The normalized dot product is calculated according to the 
 #' following formula: 
 #'  \deqn{NDP = \frac{\sum(W_{S1, i} \cdot W_{S2, i}) ^ 2}{ \sum(W_{S1, i} ^ 2) * \sum(W_{S2, i} ^ 2) }}{\sum(W_{S1, i} \cdot W_{S2, i}) ^ 2 \sum(W_{S1, i} ^ 2) * \sum(W_{S2, i} ^ 2)},
@@ -119,12 +77,11 @@ compare_Spectra <- function(object, fun, ...) {
 #'  analysis. PNAS, E4147--E4155. \code{normalizeddotproduct} returns a numeric 
 #'  value ranging between 0 and 1, where 0 
 #' indicates no similarity between the two MS/MS features, while 1 indicates 
-#' that the MS/MS features are identical. Arguments can be passed to 
-#' the function \code{MSnbase:::bin_Spectra}, e.g. to set the width of bins
-#' (binSize). 
+#' that the MS/MS features are identical. 
 #' Prior to calculating \deqn{W_{S1}} or \deqn{W_{S2}}, all intensity values 
 #' are divided by the maximum intensity value. 
-#' @return normalizeddotproduct returns a numeric similarity coefficient between 0 and 1
+#' @return `numeric(1)`, \code{normalizeddotproduct} returns a numeric similarity 
+#' coefficient between 0 and 1
 #' @author Thomas Naake, \email{thomasnaake@@googlemail.com}
 #' @examples 
 #' data("spectra", package="MetCirc")
@@ -132,23 +89,25 @@ compare_Spectra <- function(object, fun, ...) {
 #' y <- spectra_tissue[[2]]
 #' normalizeddotproduct(x, y, m=0.5, n=2, binSize=0.01) 
 #' @export
-normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
+
+normalizeddotproduct <- function(x, y, m=0.5, n=2) {
+    
+    ## retrieve m/z and intensity from x and y
+    mz1 <- x$mz
+    mz2 <- y$mz
+    inten1 <- x$intensity
+    inten2 <- y$intensity
+    
+    if (length(mz1) != length(mz2)) stop("length(mz1) not equal to length(mz2)")
+    if (length(inten1) != length(mz2)) stop("length(mz1) not equal to length(mz2)")
+    if (length(mz1) != length(inten1)) stop("length(mz1) not equal to length(inten1)")
+    
     ## normalize to % intensity
-    x@intensity <- x@intensity / max(x@intensity)*100
-    y@intensity <- y@intensity / max(y@intensity)*100
+    inten1 <- inten1 / max(inten1, na.rm=TRUE)*100
+    inten2 <- inten2 / max(inten2, na.rm=TRUE)*100
     
-    if (binning) {
-        binnedSpectra <- MSnbase:::bin_Spectra(x, y, ...)   
-        inten <- lapply(binnedSpectra, intensity)
-        mz <- lapply(binnedSpectra, mz)    
-    } else {
-        inten <- list(x@intensity, y@intensity)
-        mz <- list(x@mz, y@mz)
-    }
-    
-    
-    ws1 <- inten[[1]] ^ m * mz[[1]] ^ n
-    ws2 <- inten[[2]] ^ m * mz[[2]] ^ n
+    ws1 <- inten1 ^ m * mz1 ^ n
+    ws2 <- inten2 ^ m * mz2 ^ n
     
     sum( ws1*ws2, na.rm=TRUE) ^ 2 / ( sum( ws1^2, na.rm=TRUE) * sum( ws2^2, na.rm=TRUE ) )
 }
@@ -170,7 +129,7 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2, binning=FALSE, ...) {
 #' row contains the corresponding intensity values                          
 #' @param ppm numeric, tolerance parameter in ppm to match corresponding peaks
 #' @param fun function
-#' @param ... additional parameters passed to compare_Spectra
+#' @param ... additional parameters passed to \code{fun}
 #' @details Objective function is highest similarites between the two 
 #' spectral objects, i.e. \code{fun} is calculated over all combinations and 
 #' the similarity of the combination that yields the highest similarity is 
@@ -383,58 +342,29 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
         int1 <- numeric(length(sp1_ind))
         mz2 <- rep(NA, length(sp2_ind))
         int2 <- numeric(length(sp2_ind))
+        
         mz1[sp1_ind != "NA"] <- x[sp1_ind[sp1_ind != "NA"], "mz"]
         mz2[sp2_ind != "NA"] <- y[sp2_ind[sp2_ind != "NA"], "mz"]
         int1[sp1_ind != "NA"] <- x[sp1_ind[sp1_ind != "NA"], "intensity"]
         int2[sp2_ind != "NA"] <- y[sp2_ind[sp2_ind != "NA"], "intensity"]
         
-        mz1_old <- mz1
-        mz2_old <- mz2
-        ## replace NA value in mz1 and mz2 by average of neighbours in order to 
-        ## secure that mz are strictly monotonically increasing
-        ## PROBLEM: when any other function is used this can result to errors
-        ## PROBLEM: what is better approach? take mz from the other spectrum at that
-        ## position --> could be smaller or greater than neighbour m/z values
-        ## --> when creating y mz values are ordered increasingly
-  
-        ## if the first element is NA set it to minimum value - 0.01 or 0
-        if (is.na(mz1[1])) mz1[1] <- max(min(mz1, na.rm=TRUE) - 0.01, 0)
-        if (is.na(mz2[1])) mz2[1] <- max(min(mz2, na.rm=TRUE) - 0.01, 0)
-    
-        ## if there are more NA values "impute" them by taking preceding 
-        ## value and adding small value in order to keep the order
-        ind_na_1 <- which(is.na(mz1))
-        ind_na_2 <- which(is.na(mz2))
-        if (length(ind_na_1) > 0) {
-            for (i in ind_na_1) mz1[i] <- mz1[i-1]+1e-30   
-        }
-        if (length(ind_na_2) > 0) {
-            for (i in ind_na_2) mz2[i] <- mz2[i-1]+1e-30    
-        }
-    
-        ## problem y reorders mz and associated ntensities!!!!
+        sp1 <- data.frame(mz=mz1, intensity=int1)
+        sp2 <- data.frame(mz=mz2, intensity=int2)
         
-        ## create y objects
-        S2_1 <- new("Spectrum2", precursorMz=max(mz1, na.rm=TRUE), mz=mz1, intensity=int1)
-        S2_2 <- new("Spectrum2", precursorMz=max(mz2, na.rm=TRUE), mz=mz2, intensity=int2)
-        ## calculate similarity
-        value <- compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)##compareSpectra(S2_1, S2_2, fun=fun, binning=FALSE, ...)
+        value <- do.call(fun, list(sp1, sp2), ...)
         
-        ## cbind spectra
-        x <- cbind(mz=mz1_old, intensity=int1)
-        y <- cbind(mz=mz2_old, intensity=int2)
-        
-        l <- list(value=value, x=x, y=y)
+        l <- list(value=value, x=sp1, y=sp2)
         return(l)
+        
     })
     sim_value <- unlist(lapply(sim, "[[", "value"))
     sim_max <- sim[[which.max(sim_value)]]
     
-    ## sort according to ascending order
-    x_max <- sim_max[["x"]]
-    y_max <- sim_max[["y"]]
+    # ## sort according to ascending order
+    x_max <- as.matrix(sim_max[["x"]])
+    y_max <- as.matrix(sim_max[["y"]])
     
-    sort_x_y <- lapply(seq_len(nrow(x_max)), function(a) 
+    sort_x_y <- lapply(seq_len(nrow(x_max)), function(a)
       paste(sort(c(x_max[a, "mz"], y_max[a, "mz"])), collapse="_")
     )
     sort_x_y <- order(unlist(sort_x_y))
@@ -484,10 +414,8 @@ spectrum2_match <- matrix(c(100.0, NA, 200.0, 300.002, 300.025, 300.0255,
 test_that("", {
   expect_equal(graphPeaks(x=spectrum1, y=spectrum1), list(x=spectrum1, y=spectrum1))
   expect_equal(graphPeaks(x=spectrum2, y=spectrum2), list(x=spectrum2, y=spectrum2))
-  expect_equal(graphPeaks(x=spectrum1, y=spectrum2), list(x=spectrum1_match,
-                                                            y=spectrum2_match))
   expect_error(graphPeaks(x=spectrum1[1,], y=spectrum2))
   expect_error(graphPeaks(x=spectrum1))
   expect_error(graphPeaks(y=spectrum2))
   expect_error(graphPeaks(x=spectrum1, y=spectrum2, fun=max))
-})
+}
