@@ -164,9 +164,6 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
             c(rownames(x), rownames(y))
     ))
     
-    w[rownames(x), rownames(x)] <- 0
-    w[rownames(y), rownames(y)] <- 0
-    
     ## 2) remove edges that are not in a certain range
     ppm_1_1 <- x[,1] / abs(ppm / 10 ^ 6  - 1 ); names(ppm_1_1) <- rownames(x) 
     ppm_1_2 <- x[,1] / abs(ppm / 10 ^ 6  + 1 ); names(ppm_1_2) <- rownames(x)
