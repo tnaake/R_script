@@ -4,16 +4,17 @@ library(igraph)
 ################################### functions ##################################
 #' @name shiftMatrix
 #' @title Shift columns of a matrix by n and set added columns to def
-#' @description \code{shiftMatrix} shifts columns of a matrix by \code{n} and 
-#' sets the added columns to \code{def}.
+#' @description `shiftMatrix` shifts columns of a matrix by `n` and 
+#' sets the added columns to `def`.
 #' @usage shiftMatrix(mat, x, n, def=NA)
-#' @param mat matrix
+#' @param mat `matrix`
 #' @param x numeric, col indices to shift
-#' @param n numeric
-#' @param def character/numeric, replacement value for added columns
-#' @details Helper function for \code{graphPeaks}
+#' @param n `numeric(1)`, gives the number by how many positions the columns 
+#' `x` of `mat` are shifted
+#' @param def `character(1)`/`numeric(1)`, replacement value for added columns
+#' @details helper function for `graphPeaks`
 #' @return matrix with all combinations of shifted rows, only returns the 
-#' cols x
+#' columns `x` of `mat`
 #' @author Thomas Naake \email{thomasnaake@@googlemail.com}
 #' @examples 
 #' mat <- matrix(letters[1:18], ncol=6, nrow=3)
@@ -59,28 +60,29 @@ test_that("", {
 
 
 
-## taken from MetCirc
 #' @name normalizeddotproduct
 #' @title Calculate the normalized dot product
 #' @description Calculate the normalized dot product (NDP)
 #' @usage normalizeddotproduct(x, y, m=0.5, n=2, ...)
-#' @param x list of length 2 with m/z and corresponding intensity values
-#' @param y list of length 2 with m/z and corresponding intensity values
-#' @param m \code{numeric}, exponent to calculate peak intensity-based weights
-#' @param n \code{numeric}, exponent to calculate m/z-based weights
+#' @param x `list` of length 2 with m/z (`"mz"`) and corresponding intensity 
+#' values (`"intensity"`)
+#' @param y `list` of length 2 with m/z (`"mz"`) and corresponding intensity 
+#' values (`"intensity"`)
+#' @param m `numeric(1)`, exponent to calculate peak intensity-based weights
+#' @param n `numeric(1)`, exponent to calculate m/z-based weights
 #' @details The normalized dot product is calculated according to the 
 #' following formula: 
 #'  \deqn{NDP = \frac{\sum(W_{S1, i} \cdot W_{S2, i}) ^ 2}{ \sum(W_{S1, i} ^ 2) * \sum(W_{S2, i} ^ 2) }}{\sum(W_{S1, i} \cdot W_{S2, i}) ^ 2 \sum(W_{S1, i} ^ 2) * \sum(W_{S2, i} ^ 2)},
 #'  with \eqn{W = [ peak intensity] ^{m} \cdot [m/z]^n}. For further information 
 #'  see Li et al. (2015): Navigating natural variation in herbivory-induced
 #'  secondary metabolism in coyote tobacco populations using MS/MS structural 
-#'  analysis. PNAS, E4147--E4155. \code{normalizeddotproduct} returns a numeric 
+#'  analysis. PNAS, E4147--E4155. `normalizeddotproduct` returns a numeric 
 #'  value ranging between 0 and 1, where 0 
 #' indicates no similarity between the two MS/MS features, while 1 indicates 
 #' that the MS/MS features are identical. 
 #' Prior to calculating \deqn{W_{S1}} or \deqn{W_{S2}}, all intensity values 
 #' are divided by the maximum intensity value. 
-#' @return `numeric(1)`, \code{normalizeddotproduct} returns a numeric similarity 
+#' @return `numeric(1)`, `normalizeddotproduct` returns a numeric similarity 
 #' coefficient between 0 and 1
 #' @author Thomas Naake, \email{thomasnaake@@googlemail.com}
 #' @examples 
@@ -89,7 +91,6 @@ test_that("", {
 #' y <- spectra_tissue[[2]]
 #' normalizeddotproduct(x, y, m=0.5, n=2, binSize=0.01) 
 #' @export
-
 normalizeddotproduct <- function(x, y, m=0.5, n=2) {
     
     ## retrieve m/z and intensity from x and y
@@ -114,28 +115,28 @@ normalizeddotproduct <- function(x, y, m=0.5, n=2) {
 
 #' @name graphPeaks
 #' @title Match two spectra using bipartite networks and combinatorics
-#' @description \code{graphPeaks} takes two objects, \code{x} and 
-#' \code{y} as input that contain spectral information. The matching 
+#' @description `graphPeaks` takes two objects, `x` and 
+#' `y` as input that contain spectral information. The matching 
 #' is a multi-step procedure: 
-#' 1) filtering based on \code{ppm},
-#' 2) retain order of matches between features of \code{x} and 
-#' \code{y} (remove crossing edges that violate the order of matching
+#' 1) filtering based on `ppm`,
+#' 2) retain order of matches between features of `x` and 
+#' `y` (remove crossing edges that violate the order of matching
 #' m/z),
 #' 3) calculate all combinations of the remaining possibilities.  
 #' @usage graphPeaks(x, y, ppm=20, fun=normalizeddotproduct, ...)
-#' @param x matrix, the first row contains m/z value and the second 
-#' row contains the corresponding intensity values                            
-#' @param  y matrix, the first row contains m/z value and the second 
-#' row contains the corresponding intensity values                          
+#' @param x `matrix`, the first column (`"mz"`) contains m/z value and the 
+#' second column (`"intensity"`) contains the corresponding intensity values                            
+#' @param y `matrix`, the first column (`"mz"`) contains m/z value and the 
+#' second column (`"intensity"`) contains the corresponding intensity values                          
 #' @param ppm numeric, tolerance parameter in ppm to match corresponding peaks
-#' @param fun function
-#' @param ... additional parameters passed to \code{fun}
+#' @param fun function to calculate similarity between spectra
+#' @param ... additional parameters passed to `fun`
 #' @details Objective function is highest similarites between the two 
-#' spectral objects, i.e. \code{fun} is calculated over all combinations and 
+#' spectral objects, i.e. `fun` is calculated over all combinations and 
 #' the similarity of the combination that yields the highest similarity is 
 #' returned. 
-#' @return list with elements x and y each being a matrix (columns "mz" 
-#' each row (peak) in x matching the row (peak) in y
+#' @return list with elements `x` and `y` each being a matrix with columns `"mz"` 
+#' and `"intensity"`. Each row (peak) in `x` matches the row (peak) in `y`
 #' @author Thomas Naake \email{thomasnaake@@googlemail.com}
 #' @examples 
 #' graphPeaks(x, y, ppm=20, fun=normalizeddotproduct, ...)
@@ -390,7 +391,7 @@ colnames(spectrum2) <- c("mz", "intensity")
 ##300.01  <-> 300.002
 ##300.02  <-> 300.0255 --> gives higher score
 ##NA      <-> 300.0250
-graphPeaks(x=spectrum1, y=spectrum2, n=1, m=0.2) 
+graphPeaks(x=spectrum1, y=spectrum2, fun=normalizeddotproduct, n=1, m=0.2) 
 
 ## unit tests via test_that
 library("testthat")
