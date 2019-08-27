@@ -201,7 +201,7 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
 
     ## get combinations where csize > 2
     inds <- which(comp$csize > 2)
-    ####################################################################################################
+    
     for (i in inds) {
         
         ## separate component and create two matrices from x and 
@@ -225,8 +225,7 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
             c1 <- c(c1, rep("NA", length(c2)-length(c1))) 
             c1_c2 <- lapply(c2, function(a) expand.grid(a, c1))
         }
-        ##c1 <- c(c1, rep("NA", length(c2)-length(c1))) #################################################################
-        ##c1_c2 <- lapply(c1, function(a) expand.grid(a, c2))
+        
         c1_c2_paste <- lapply(c1_c2, function(a) apply(a, 1, function(b) paste(b, collapse=" & ")))
     
         ## calculate all possible combinations
@@ -243,8 +242,8 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
         
         ## filtering for crossing matching: retain order of m/z
         seqs <- seq(2, ncol(res_i), by=2)
-        if (ncol(res_i) > 2) { ## do this if there is only ############################################
-            ## a mapping multiple to multiple
+        if (ncol(res_i) > 2) { 
+            ## do, if there is only a multiple mapping
         
             ## check order of sp2s, they have to ascend, remove those that
             ## do not ascend
@@ -255,7 +254,6 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
               a <- a[!is.na(a)]
               all(a == sort(a))
             })
-            ##crosses <- lapply(seq_along(crosses[-1]), function(a) crosses[[a]] <= crosses[[a+1]])
             res_i <- matrix(res_i[unlist(crosses), ], ncol=ncol(res_i))
             
             ## create shifted matrices, do not use last element since it contains
@@ -296,9 +294,6 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
             ## cbind with mat_add_left and mat_add_right
             mat_shift_left <- cbind(mat_shift_left, mat_add_left)
             mat_shift_right <- cbind(mat_shift_right, mat_add_right)
-            
-            #apply(mat_shift_left, 1, table)
-            #apply(mat_shift_right, 1, table)
             
             ## add to res_i
             res_i <- cbind(res_i, matrix("NA", nrow=nrow(res_i), ncol=ncol(mat_add_left)))
@@ -349,7 +344,7 @@ graphPeaks <- function(x, y, ppm=20, fun=normalizeddotproduct, ...) {
         sp1 <- data.frame(mz=mz1, intensity=int1)
         sp2 <- data.frame(mz=mz2, intensity=int2)
         
-        value <- do.call(fun, list(sp1, sp2), ...)
+        value <- fun(sp1, sp2, ...)
         
         l <- list(value=value, x=sp1, y=sp2)
         return(l)
@@ -391,7 +386,7 @@ colnames(spectrum2) <- c("mz", "intensity")
 ##300.01  <-> 300.002
 ##300.02  <-> 300.0255 --> gives higher score
 ##NA      <-> 300.0250
-graphPeaks(x=spectrum1, y=spectrum2, fun=normalizeddotproduct, n=1, m=0.2) 
+graphPeaks(x=spectrum1, y=spectrum2, fun=normalizeddotproduct, n=1, m=0) 
 
 ## unit tests via test_that
 library("testthat")
