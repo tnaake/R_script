@@ -64,9 +64,9 @@ test_that("", {
 #' @title Calculate the normalized dot product
 #' @description Calculate the normalized dot product (NDP)
 #' @usage normalizeddotproduct(x, y, m=0.5, n=2, ...)
-#' @param x `list` of length 2 with m/z (`"mz"`) and corresponding intensity 
+#' @param x `list`/`data.frame` of length 2 with m/z (`"mz"`) and corresponding intensity 
 #' values (`"intensity"`)
-#' @param y `list` of length 2 with m/z (`"mz"`) and corresponding intensity 
+#' @param y `list`/`data.frame` of length 2 with m/z (`"mz"`) and corresponding intensity 
 #' values (`"intensity"`)
 #' @param m `numeric(1)`, exponent to calculate peak intensity-based weights
 #' @param n `numeric(1)`, exponent to calculate m/z-based weights
@@ -412,3 +412,45 @@ test_that("", {
   expect_error(graphPeaks(y=spectrum2))
   expect_error(graphPeaks(x=spectrum1, y=spectrum2, fun=max))
 }
+
+
+## chcek integration with functions
+x <- new("Spectrum2", )
+y <- new("Spectrum2")
+.compare_spectra <- function(x, y = NULL, MAPFUN = joinPeaks, tolerance = 0,
+                             ppm = 20, FUN = cor, ...) {
+  x_idx <- seq_along(x)
+  y_idx <- seq_along(y)
+  
+  nx <- length(x_idx)
+  ny <- length(y_idx)
+  
+  mat <- matrix(NA_real_, nrow = nx, ncol = ny,
+                dimnames = list(spectraNames(x), spectraNames(y)))
+  
+  ## Might need some tuning - bplapply?
+  ## This code duplication may be overengineering.
+  if (nx >= ny) {
+    for (i in x_idx) {
+      px <- peaks(x[i])[[1L]]
+      for (j in y_idx) {
+        peak_map <- MAPFUN(px, peaks(y[j])[[1L]],
+                           tolerance = tolerance, ppm = ppm, ...)
+        mat[i, j] <- FUN(peak_map[[1L]][, 2L], peak_map[[2L]][, 2L],
+                         ...)
+      }
+    }
+  } else {
+    for (j in y_idx) {
+      py <- peaks(y[j])[[1L]]
+      for (i in x_idx) {
+        peak_map <- MAPFUN(peaks(x[i])[[1]], py,
+                           tolerance = tolerance, ppm = ppm, ...)
+        mat[i, j] <- FUN(peak_map[[1L]][, 2L], peak_map[[2L]][, 2L],
+                         ...)
+      }
+    }
+  }
+  mat
+}
+
