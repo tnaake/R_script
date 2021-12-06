@@ -11,13 +11,13 @@
 #' @details
 #' The hydropathy values are taken from Table 2 in Kyte and Doolittle (1982).
 #' 
-#' @references 
-#' Kyte and Doolittle (1982): 
+#' @references
+#' Kyte and Doolittle (1982):
 #' 'A Simple Method for Displaying the  Hydropathic Character of a Protein',
-#' Journal of Molecular Biology, 175, 105-132. 
+#' Journal of Molecular Biology, 175, 105-132.
 #' doi: 10.1016/0022-2836(82)90515-0
 calculateGravyScore <- function(aa) {
-    
+
     if (!is.character(aa)) stop("'aa' has to be a character vector")
     if (length(aa) != 1) stop("'aa' has to be of length 1")
 
@@ -48,13 +48,13 @@ calculateGravyScore <- function(aa) {
     rownames(mappings) <- mappings$SINGLE_LETTER
     mappings$SCORE <- as.numeric(mappings$SCORE)
     score <- mappings[, "SCORE", drop = FALSE]
-    
+
     ## get all the characters of the sequence
     aa_split <- strsplit(aa, split = "")[[1]]
-    
+
     ## get the corresponding scores for the sequence characters and calculate
     ## the mean of the sequence
-    aa_score <- score[aa_split,]
+    aa_score <- score[aa_split, ]
     mean(aa_score)
 }
 
@@ -65,10 +65,10 @@ library(testthat)
 ## sample sequences taken from
 ## https://www.bioinformatics.org/sms2/protein_gravy.html
 test_that("calculateGravyScore", {
-    
-    expect_error(calculateGravyScore(1), 
+
+    expect_error(calculateGravyScore(1),
         "'aa' has to be a character vector")
-    expect_error(calculateGravyScore(c("MQ", "AELS")), 
+    expect_error(calculateGravyScore(c("MQ", "AELS")),
         "'aa' has to be of length 1")
     expect_equal(calculateGravyScore("xycAME"), NaN)
     seq <- "MQKSPLEKASFISKLFFSWTTPILRKGYRHHLELSDIYQAPSADSADHLSEKLEREWDREQASKKNPQLIHALRRCFFWRFLFYGILLYLGEVTKAVQPVLLGRIIASYDPENKVERSIAIYLGIGLCLLFIVRTLLLHPAIFGLHRIGMQMRTAMFSLIYKKTLKLSSRVLDKISIGQLVSLLSNNLNKFDEGLALAHFIWIAPLQVTLLMGLLWDLLQFSAFCGLGLLIILVIFQAILGKMMVKYRDQRAAKINERLVIT"
