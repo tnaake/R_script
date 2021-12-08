@@ -162,15 +162,23 @@ calculateIsoelectricPoint <- function(aa,
     
     ## get all the characters of the sequence
     aa_split <- strsplit(aa, split = "")[[1]]
-    num <- table(aa_split)[c("C", "D", "E", "H", "K", "R", "Y")]
+    residues <- c("C", "D", "E", "H", "K", "R", "Y")
+    num <- table(aa_split)[residues]
     num <- num[!is.na(names(num))]
+    num_missing <- residues[!residues %in% names(num)]
+    if (length(num_missing) > 0) {
+        num_missing_vec <- numeric(length(num_missing))
+        names(num_missing_vec) <- num_missing 
+        num <- c(num, num_missing_vec)
+    }
     num <- c("NH2" = 1, "COOH" = 1, num)
     
     ## the net charge of the peptide/protein is related to the solution pH,
     ## use the Henderson-Hasselbalch equation to calculate the charge at a 
     ## certain pH
-    pH <- 0.0
-    dpH <- 0.01## pH / 2
+    pH <- 7
+    pHprev <- 0
+    pHnext <- 14
     pI <- FALSE
     
     ## implement the bisection algorithm, which in each iteration halves
@@ -184,62 +192,50 @@ calculateIsoelectricPoint <- function(aa,
         ## uncharged below their pKa and negatively charged above their pKa,
         ## charge of COOH group: negative
         
-        sum_NH2 <- sum_E <- sum_D <- sum_C <- sum_Y <- 0
+        sum_COOH <- sum_E <- sum_D <- sum_C <- sum_Y <- 0
         
-        if (pKa["NH2"] < pH)
-            sum_NH2 <- as.numeric(-num["NH2"] / (1 + 10^(pKa["NH2"] - pH)))
-        if (pKa["E"] < pH)
-            sum_E <- as.numeric(-num["E"] / (1 + 10^(pKa["E"] - pH)))
-        if (pKa["D"] < pH)
-            sum_D <- as.numeric(-num["D"] / (1 + 10^(pKa["D"] - pH)))
-        if (pKa["C"] < pH)
-            sum_C <- as.numeric(-num["C"] / (1 + 10^(pKa["C"] - pH)))
-        if (pKa["Y"] < pH)
-            sum_Y <- as.numeric(-num["Y"] / (1 + 10^(pKa["Y"] - pH)))
-
-        #sum_neg <- sum_NH2 + sum_E + sum_D + sum_C + sum_Y
-        
-        groups <- c("NH2","E", "D", "C", "Y") ## "COOH"
-        groups <- groups[groups %in% names(num)]
-        pKn <- pKa[groups]
-        pKn <- pKn[pKn < pH]
-
-        ## repeat the pKn n times, where n is the occurence in aa
-        times <- num[names(pKn)]
-        pKn <- rep(pKn, times = times)
-
         ## calculate the sum of the Henderson-Hasselbalch equation along the
         ## residues
-        sum_neg <- 0
-        if (length(pKn) > 0)
-            sum_neg <- sum(-1 / (1 + 10^(pKn - pH)))
+        sum_COOH <- -num[["COOH"]] / (1 + 10^(pKa[["COOH"]] - pH))
+        sum_E <- -num[["E"]] / (1 + 10^(pKa[["E"]] - pH))
+        sum_D <- -num[["D"]] / (1 + 10^(pKa[["D"]] - pH))
+        sum_C <- -num[["C"]] / (1 + 10^(pKa[["C"]] - pH))
+        sum_Y <- -num[["Y"]] / (1 + 10^(pKa[["Y"]] - pH))
+        sum_neg <- sum_COOH + sum_E + sum_D + sum_C + sum_Y
 
         ## for positively charged residues
         ## His (H), Lys (K), and Arg (R) are positively charged below their pKa  
         ## and uncharged above their pKa. 
         ## charge of NH2 group: positive
-        groups <- c("COOH", "H", "K", "R") ## "NH2",
-        groups <- groups[groups %in% names(num)]
-        pKp <- pKa[groups]
-        ##pKp <- pKp[pKp > pH]
-        
-        ## repeat the pKp n times, where n is the occurence in aa
-        times <- num[names(pKp)]
-        pKp <- rep(pKp, times = times)
+        sum_NH2 <- sum_H <- sum_K <- sum_R <- 0
         
         ## calculate the sum of the Henderson-Hasselbalch equation along the 
         ## residues
-        sum_pos <- 0
-        if (length(pKp) > 0)
-            sum_pos <- sum(1 / (1 + 10^(pH - pKp)))
+        sum_NH2 <- num[["NH2"]] / (1 + 10^(pH - pKa[["NH2"]]))
+        sum_H <- num[["H"]] / (1 + 10^(pH - pKa[["H"]]))
+        sum_K <- num[["K"]] / (1 + 10^(pH - pKa[["K"]]))
+        sum_R <- num[["R"]] / (1 + 10^(pH - pKa[["R"]]))
+        sum_pos <- sum_NH2 + sum_H + sum_K + sum_R
         
-    
         ## charge of a macromolecule at a given pH is the sum of the positive
         ## and negative charges of the individual amino acids 
-        pI <- abs(sum_pos + sum_neg) <= 0.01
-        pH_prev <- pH
-        pH <- pH_prev + dpH##sign(sum_pos + sum_neg) * dpH
-        dpH <- abs((pH - pH_prev)) / 2 ##dpH / 2
+        if (sum_pos + sum_neg < 0) {
+            ## the new pH value must be smaller
+            pH_tmp <- pH
+            pH <- pH - (pH - pHprev) / 2
+            pHnext <- pH_tmp
+        } else {
+            ## the new pH value must be higher
+            pH_tmp <- pH
+            pH <- pH + (pHnext - pH) / 2
+            pHprev <- pH_tmp
+        }
+        
+        if (pH - pHprev < 0.001 & pHnext - pH < 0.001) 
+            pI <- TRUE
+        
+        if (pH > 14) stop("'pH' is greater than 14")
+        if (pH < 0) stop("'pH' is smaller than 14")
     }
     
     return(pH)
@@ -252,57 +248,101 @@ test_that("calculateIsoelectricPoint", {
     ## 7.84, 7.65, 7.54
     seq <- "MLQLGLRVLGCKASSVLRASTCLAGRAGRKEAGWECGGARSFSSSAVTMAPIKVGDAIPSVEVFEGEPGKKVNLAELFKGKKGVLFGVPGAFTPGCSKTHLPGFVEQAGALKAKGAQVVACLSVNDVFVIEEWGRAHQAEGKVRLLADPTGAFGKATDLL
 LDDSLVSLFGNRRLKRFSMVIDNGIVKALNVEPDGTGLTCSLAPNILSQL"
-    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 9.147)
-    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 8.848)
-    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 9.101)
-    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.291)
-    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 9.03)
-    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 9.127)
-    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 8.18)
-    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.02)
-    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.542)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.054)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 9.101)
+    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 9.147, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 8.848, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 9.101,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.291, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 9.03,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 9.127,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 8.18, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.02, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.542, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.054,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 9.101, 
+        tolerance = 5e-02)
     
     ## P40185-1 experimental isoelectric point 6.89
     seq <- "MFLRNSVLRTAPVLRRGITTLTPVSTKLAPPAAASYSQAMKANNFVYVSGQIPYTPDNKPVQGSISEKAEQVFQNVKNILAESNSSLDNIVKVNVFLADMKNFAEFNSVYAKHFHTHKPARSCVGVASLPLNVDLEMEVIAVEKN"
-    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 8.063)
-    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 7.883)
-    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 7.968)
-    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 8.207)
-    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 7.777)
-    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 7.991)
-    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 6.929)
-    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 7.929)
-    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 8.066)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 7.215)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 7.964)
+    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 9.764, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 9.269, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 9.694, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.542, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 9.918, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 9.667, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 9.357, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.443, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.421, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.64, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 9.687, 
+        tolerance = 5e-02)
     
     ## Q9XFT3-1 experimental isoelectric point 8.07
     seq <- "MASMGGLHGASPAVLEGSLKINGSSRLNGSGRVAVAQRSRLVVRAQQSEETSRRSVIGLVAAGLAGGSFVQAVLADAISIKVGPPPAPSGGLPAGTDNSDQARDFALALKDRFYLQPLPPTEAAARAKESAKDIINVKPLIDRKAWPYVQNDLRSKASYLRYDLNTIISSKPKDEKKSLKDLTTKLFDTIDNLDYAAKKKSPSQAEKYYAETVSALNEVLAKLG"
-    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 9.667)
-    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 9.176)
-    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 9.572)
-    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.46)
-    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 9.795)
-    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 9.54)
-    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 9.242)
-    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.352)
-    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.359)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.477)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 9.566)
+    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 10.222, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 9.645, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 10.046, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.921, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 10.498, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 10.017, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 9.824,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.866, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.784,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.958, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 10.046, 
+        tolerance = 5e-02)
  
     ## Q9BVP2-1 experimental isoelectric point 6.47
     seq <- "MKRPKLKKASKRMTCHKRYKIQKKVREHHRKLRKEAKKRGHKKPRKDPGVPNSAPFKEALLREAELRKQRLEELKQQQKLDRQKELEKKRKLETNPDIKPSNVEPMEKEFGLCKTENKAKSGKQNSKKLYCQELKKVIEASDVVLEVLDARDPLGCRCPQVEEAIVQSGQKKLVLILNKSDLVPKENLESWLNYLKKELPTVVFRASTKPKDKGKITKRVKAKKNAAPFRSEVCFGKEGLWKLLGGFQETCSKAIRVGVIGFPNVGKSSIINSLKQEQMCNVGVSMGLTRSMQVVPLDKQITIIDSPSFIVSPLNSSSALALRSPASIEVVKPMEAASAILSQADARQVVLKYTVPGYRNSLEFFTVLAQRRGMHQKGGIPNVEGAAKLLWSEWTGASLAYYCHPPTSWTPPPYFNESIVVDMKSGFNLEELEKNNAQSIRAIKGPHLANSILFQSSGLTNGIIEEKDIHEELPKRKERKQEEREDDKDSDQETVDEEVDENSSGMFAAEETGEALSEETTAGEQSTRSFILDKIIEEDDAYDFSTDYV"
-    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 9.41)
-    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 8.933)
-    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 9.249)
-    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.304)
-    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 9.579)
-    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 9.237)
-    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 8.903)
-    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.149)
-    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.363)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.081)
-    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 9.251)
+    expect_equal(calculateIsoelectricPoint(seq, "EMBOSS"), 9.41,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "DTASelect"), 8.933, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Solomon"), 9.249, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Sillero"), 9.304,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Rodwell"), 9.579, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Lehninger"), 9.237, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Toseland"), 8.903, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Thurlkill"), 9.149,
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "Nozaki"), 9.363, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_protein"), 8.081, 
+        tolerance = 5e-02)
+    expect_equal(calculateIsoelectricPoint(seq, "IPC_peptide"), 9.251, 
+        tolerance = 5e-02)
 })
