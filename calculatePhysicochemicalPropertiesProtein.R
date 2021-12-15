@@ -242,8 +242,11 @@ calculateIsoelectricPoint <- function(aa,
 }
 
 test_that("calculateIsoelectricPoint", {
-    ## values taken from http://isoelectric.org/calculate.php
     
+    expect_error(calculateIsoelectricPoint(seq, "foo"), 
+        "'arg' should be one of")
+    
+    ## values taken from http://isoelectric.org/calculate.php
     ## P99029-1, experimental isoelectric points (different sources): 
     ## 7.84, 7.65, 7.54
     seq <- "MLQLGLRVLGCKASSVLRASTCLAGRAGRKEAGWECGGARSFSSSAVTMAPIKVGDAIPSVEVFEGEPGKKVNLAELFKGKKGVLFGVPGAFTPGCSKTHLPGFVEQAGALKAKGAQVVACLSVNDVFVIEEWGRAHQAEGKVRLLADPTGAFGKATDLL
